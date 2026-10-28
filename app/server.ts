@@ -2,7 +2,7 @@ import 'server-only';
 import {db as postgresDb} from '../lib/database';
 import {getUser} from './auth';
 export const database=()=>postgresDb;
-export async function identity(){const u=await getUser();if(!u)throw new Error('401');const db=database();const linked:any=await db.prepare('SELECT profile_id,is_admin FROM profile_logins WHERE auth_id=?').bind(u.userId).first();let p:any;
+export async function identity(){const u=await getUser();if(!u)throw new Error('401');const db=database();const linked:any=await db.prepare('SELECT profile_id,is_admin FROM lejrbalet.profile_logins WHERE auth_id=?').bind(u.userId).first();let p:any;
 if(linked){p=await db.prepare('SELECT id,name,bio,avatar,created FROM profiles WHERE id=?').bind(linked.profile_id).first();if(!p)throw new Error('401');}
 else{await db.prepare('INSERT INTO profiles (id,auth_id,name,bio,created) VALUES (?,?,?,\'\',?) ON CONFLICT(auth_id) DO NOTHING').bind(crypto.randomUUID(),u.userId,'Eventyrer',new Date().toISOString()).run();p=await db.prepare('SELECT id,name,bio,avatar,created FROM profiles WHERE auth_id=?').bind(u.userId).first();}
 return {...p,admin:linked?.is_admin===true||!!process.env.LEJRBAL_ADMIN_EMAIL&&u.email.toLowerCase()===process.env.LEJRBAL_ADMIN_EMAIL.toLowerCase()};}
