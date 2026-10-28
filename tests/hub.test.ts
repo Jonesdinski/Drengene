@@ -19,6 +19,11 @@ const created=await call('a',{op:'create',entry:{kind:'goal',title:'Fælles mål
 expect((await call('b')).data.entries.some((e:any)=>e.id===id)).toBe(true);expect((await call('b',{op:'delete',id,owner:a.id})).status).toBe(403);expect((await call('a',{op:'delete',id},'https://evil.test')).status).toBe(403);
 expect((await call('a',{op:'done',id})).status).toBe(200);expect((await call('a')).data.entries.find((e:any)=>e.id===id).done).toBe(1);
 expect((await call('a',{op:'delete',id})).status).toBe(200);expect((await call('a')).data.archived.some((e:any)=>e.id===id)).toBe(true);expect((await call('b')).data.archived.some((e:any)=>e.id===id)).toBe(false);expect((await call('a',{op:'restore',id})).status).toBe(200);
+const character=(await call('a',{op:'create',entry:{kind:'character',title:'Min main',data:{role:'main',class:'Mage'}}})).data.id;
+expect((await call('b',{op:'character-role',id:character,role:'alt'})).status).toBe(403);
+expect((await call('a',{op:'character-role',id:character,role:'alt'})).status).toBe(200);
+expect((await call('a')).data.entries.find((e:any)=>e.id===character).data).toMatchObject({role:'alt',class:'Mage'});
+expect((await call('a',{op:'character-role',id:character,role:'bad'})).status).toBe(400);
 const poll=(await call('a',{op:'create',entry:{kind:'poll',title:'Hvad spiller vi?',data:{options:['WoW','Andet']}}})).data.id;
 expect((await call('b',{op:'action',id:poll,kind:'vote',value:'Ukendt'})).status).toBe(403);
 for(const value of ['WoW','Andet'])expect((await call('b',{op:'action',id:poll,kind:'vote',value})).status).toBe(200);
