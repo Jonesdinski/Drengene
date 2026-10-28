@@ -7,7 +7,7 @@ vi.mock('../app/auth',()=>({getUser:async()=>state.user}));
 vi.mock('../lib/database',async importOriginal=>{const actual=await importOriginal<any>();return {...actual,db:actual.makeDatabase(()=>state.client)};});
 const pg=new PGlite();
 const executor=(c:any):any=>({async unsafe(sql:string,args:any[]=[]){const result=await c.query(sql,args);return Object.assign(result.rows,{count:result.affectedRows});},begin:(fn:any)=>c.transaction((tx:any)=>fn(executor(tx)))});
-beforeAll(async()=>{await pg.exec('CREATE ROLE anon; CREATE ROLE authenticated;');await pg.exec(await readFile(new URL('../database/001_schema.sql',import.meta.url),'utf8'));state.client=executor(pg);process.env.LEJRBAL_ADMIN_EMAIL='admin@example.test';process.env.APP_URL='https://lejrbalet.test';});
+beforeAll(async()=>{await pg.exec('CREATE ROLE anon; CREATE ROLE authenticated;');await pg.exec(await readFile(new URL('../database/001_schema.sql',import.meta.url),'utf8'));await pg.exec(await readFile(new URL('../database/003_profile_logins.sql',import.meta.url),'utf8'));state.client=executor(pg);process.env.LEJRBAL_ADMIN_EMAIL='admin@example.test';process.env.APP_URL='https://lejrbalet.test';});
 afterAll(()=>pg.close());
 async function call(user:string|null,body?:any,origin='https://lejrbalet.test'){state.user=user?{userId:user,email:user+'@example.test'}:null;const routes=await import('../app/api/hub/route');const r=body?await routes.POST(new Request('https://lejrbalet.test/api/hub',{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify(body)})):await routes.GET();return {status:r.status,data:await r.json()};}
 test('shared PostgreSQL data, identities, permissions, votes, tokens, transactions and privacy',async()=>{
@@ -47,4 +47,13 @@ expect(failure(e).status).toBe(500);
 expect(JSON.stringify(spy.mock.calls)).not.toContain('private-credential');
 expect(spy).toHaveBeenCalledWith('Lejrbalet API error',{code:'ERR_INVALID_URL'});
 spy.mockRestore();
+});
+
+test('verified account links reuse one profile and preserve admin access without matching display names',async()=>{
+ const original=(await call('merge-original')).data.me;
+ await pg.query('INSERT INTO lejrbalet.profile_logins(auth_id,profile_id,is_admin) VALUES ($1,$2,true)',['merge-discord',original.id]);
+ const linked=(await call('merge-discord')).data.me;expect(linked.id).toBe(original.id);expect(linked.admin).toBe(true);
+ expect((await call('merge-original')).data.me.id).toBe(original.id);
+ expect((await call('unrelated')).data.me.admin).toBe(false);
+ const rows=await pg.query('SELECT count(*) AS n FROM lejrbalet.profiles WHERE auth_id=$1',['merge-discord']);expect(Number((rows.rows[0] as any).n)).toBe(0);
 });
