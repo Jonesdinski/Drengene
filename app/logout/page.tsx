@@ -1,1 +1,0 @@
-export default function Logout(){return <main className="auth-page"><section className="panel"><div className="panel-head"><h2>Forlad bålet for nu?</h2></div><form action="/auth/signout" method="post" className="modal-body"><p>Din profil og dine eventyr bliver gemt, til du vender tilbage.</p><button>Log ud</button><a href="/">Bliv lidt endnu</a></form></section></main>;}

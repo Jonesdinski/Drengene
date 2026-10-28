@@ -1,4 +1,5 @@
 'use client';
+import {readApiResponse,validateImageSize} from '../lib/http';
 import WheelPanel from './wheel-panel';
 import {useEffect,useState,useRef} from 'react';
 import {Flame,Compass,Users,CalendarDays,Swords,Plus,ScrollText,Flag,MessageCircle,Image as ImageIcon,Gem,Dices,Settings,LogOut,X,ArrowUpRight,ChevronRight,Check,Trash2,Shield,UserRound,RefreshCw} from 'lucide-react';
@@ -8,13 +9,13 @@ export default function Hub({signedIn,signIn,signOut,initialTab='Overblik'}:any)
 const [data,setData]=useState<any>(emptyData),[tab,setTab]=useState(initialTab),[modal,setModal]=useState<string|null>(null),[error,setError]=useState(''),[notice,setNotice]=useState(''),[loading,setLoading]=useState(signedIn),[busy,setBusy]=useState(false),[token,setToken]=useState(''),[wheel,setWheel]=useState('Questing\nEn dungeon\nUdforskning\nProfessions'),[deleted,setDeleted]=useState<string|null>(null),[search,setSearch]=useState('');
 const me=data.me;
 const initialized=useRef(false);
-async function refresh(){if(!signedIn)return;try{const r=await fetch('/api/hub',{cache:'no-store'}),d:any=await r.json();if(!r.ok)throw Error(d.error);setData(d);if(!initialized.current){const last=d.entries.find((e:any)=>e.kind==='wheel');if(last?.data?.options)setWheel(last.data.options.join('\n'));initialized.current=true;}setError('');}catch(e:any){setError(e.message);}finally{setLoading(false);}}
+async function refresh(){if(!signedIn)return;try{const r=await fetch('/api/hub',{cache:'no-store'}),d:any=await readApiResponse(r);setData(d);if(!initialized.current){const last=d.entries.find((e:any)=>e.kind==='wheel');if(last?.data?.options)setWheel(last.data.options.join('\n'));initialized.current=true;}setError('');}catch(e:any){setError(e.message);}finally{setLoading(false);}}
 useEffect(()=>{refresh();const id=setInterval(()=>{if(!document.hidden)refresh()},30000);return()=>clearInterval(id)},[]);
 useEffect(()=>{if(!modal)return;const f=(e:KeyboardEvent)=>{if(e.key==='Escape'){setModal(null);setToken('')}};document.addEventListener('keydown',f);return()=>document.removeEventListener('keydown',f)},[modal]);
-async function api(payload:any){const r=await fetch('/api/hub',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const d:any=await r.json();if(!r.ok)throw Error(d.error);return d;}
+async function api(payload:any){const r=await fetch('/api/hub',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const d:any=await readApiResponse(r);return d;}
 async function action(payload:any){if(!signedIn){window.location.href=signIn;return;}try{await api(payload);await refresh();return true;}catch(e:any){setError(e.message);return false;}}
 function open(kind:string){setError('');setToken('');if(!signedIn){window.location.href=signIn;return;}setModal(kind);}
-async function upload(file:File){if(!file.size)return undefined;const f=new FormData();f.set('file',file);const r=await fetch('/api/upload',{method:'POST',body:f});const d:any=await r.json();if(!r.ok)throw Error(d.error);return d.id;}
+async function upload(file:File){if(!file.size)return undefined;validateImageSize(file.size);const f=new FormData();f.set('file',file);const r=await fetch('/api/upload',{method:'POST',body:f});const d:any=await readApiResponse(r);return d.id;}
 async function submit(e:any){e.preventDefault();if(busy)return;setBusy(true);setError('');const f=new FormData(e.currentTarget),v=(k:string)=>String(f.get(k)||'').trim();try{
 if(modal==='profile'){const file=f.get('file') as File;const avatar=file?.size?await upload(file):me.avatar;await api({op:'profile',name:v('title'),bio:v('body'),avatar:avatar||null});}
 else if(modal==='claim'){await api({op:'claim',token:v('token')});}
