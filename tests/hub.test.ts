@@ -1,0 +1,45 @@
+import {beforeAll,afterAll,expect,test,vi} from 'vitest';
+import {PGlite} from '@electric-sql/pglite';
+import {readFile} from 'node:fs/promises';
+const state=vi.hoisted(()=>({user:null as null|{userId:string,email:string},client:null as any}));
+vi.mock('server-only',()=>({}));
+vi.mock('../app/auth',()=>({getUser:async()=>state.user}));
+vi.mock('../lib/database',async importOriginal=>{const actual=await importOriginal<any>();return {...actual,db:actual.makeDatabase(()=>state.client)};});
+const pg=new PGlite();
+const executor=(c:any):any=>({async unsafe(sql:string,args:any[]=[]){const result=await c.query(sql,args);return Object.assign(result.rows,{count:result.affectedRows});},begin:(fn:any)=>c.transaction((tx:any)=>fn(executor(tx)))});
+beforeAll(async()=>{await pg.exec('CREATE ROLE anon; CREATE ROLE authenticated;');await pg.exec(await readFile(new URL('../database/001_schema.sql',import.meta.url),'utf8'));state.client=executor(pg);process.env.LEJRBAL_ADMIN_EMAIL='admin@example.test';process.env.APP_URL='https://lejrbalet.test';});
+afterAll(()=>pg.close());
+async function call(user:string|null,body?:any,origin='https://lejrbalet.test'){state.user=user?{userId:user,email:user+'@example.test'}:null;const routes=await import('../app/api/hub/route');const r=body?await routes.POST(new Request('https://lejrbalet.test/api/hub',{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify(body)})):await routes.GET();return {status:r.status,data:await r.json()};}
+test('shared PostgreSQL data, identities, permissions, votes, tokens, transactions and privacy',async()=>{
+expect((await call(null)).status).toBe(401);
+const a=(await call('a')).data.me,b=(await call('b')).data.me;expect(a.id).not.toBe(b.id);expect((await call('a')).data.me.id).toBe(a.id);expect(JSON.stringify((await call('a')).data)).not.toContain('@example.test');
+for(const name of ['a','b'])expect((await call(name,{op:'profile',name:'Samme spillernavn',bio:'',avatar:null})).status).toBe(200);
+expect((await call('b')).data.me.id).toBe(b.id);
+const created=await call('a',{op:'create',entry:{kind:'goal',title:'Fælles mål',data:{}}});expect(created.status).toBe(200);const id=created.data.id;
+expect((await call('b')).data.entries.some((e:any)=>e.id===id)).toBe(true);expect((await call('b',{op:'delete',id,owner:a.id})).status).toBe(403);expect((await call('a',{op:'delete',id},'https://evil.test')).status).toBe(403);
+expect((await call('a',{op:'done',id})).status).toBe(200);expect((await call('a')).data.entries.find((e:any)=>e.id===id).done).toBe(1);
+expect((await call('a',{op:'delete',id})).status).toBe(200);expect((await call('a')).data.archived.some((e:any)=>e.id===id)).toBe(true);expect((await call('b')).data.archived.some((e:any)=>e.id===id)).toBe(false);expect((await call('a',{op:'restore',id})).status).toBe(200);
+const poll=(await call('a',{op:'create',entry:{kind:'poll',title:'Hvad spiller vi?',data:{options:['WoW','Andet']}}})).data.id;
+expect((await call('b',{op:'action',id:poll,kind:'vote',value:'Ukendt'})).status).toBe(403);
+for(const value of ['WoW','Andet'])expect((await call('b',{op:'action',id:poll,kind:'vote',value})).status).toBe(200);
+expect((await call('a')).data.actions.filter((a:any)=>a.entry_id===poll)).toHaveLength(1);
+const event=(await call('a',{op:'create',entry:{kind:'event',title:'LAN',data:{date:'2026-11-01T18:00:00.000Z'}}})).data.id;
+expect((await call('b',{op:'action',id:event,kind:'rsvp',value:'Ja'})).status).toBe(200);
+expect((await call('b',{op:'settings',discord:'https://discord.gg/test'})).status).toBe(403);
+expect((await call('b',{op:'profile',name:'B',bio:'',avatar:crypto.randomUUID()})).status).toBe(403);
+expect((await call('a',{op:'create',entry:{kind:'event',title:'Ingen dato',data:{}}})).status).toBe(400);
+const imp=await call('admin',{op:'legacy-import',name:'Rigtig gammel profil',entries:[{kind:'character',title:'Gammel karakter',data:{}}]});expect(imp.status).toBe(200);
+expect((await call('a',{op:'claim',token:imp.data.token})).status).toBe(200);expect((await call('b',{op:'claim',token:imp.data.token})).status).toBe(400);
+const after=(await call('a')).data;expect(after.aliases[0].profile_id).toBe(a.id);expect(after.entries.find((e:any)=>e.title==='Gammel karakter').owner).toBe(a.id);
+const wheel=await call('a',{op:'create',entry:{kind:'wheel',title:'Hjulet',data:{options:['A','B']}}});expect(['A','B']).toContain(wheel.data.result);
+const {db}=await import('../lib/database');await expect(db.batch([db.prepare('INSERT INTO settings(key,value) VALUES (?,?)').bind('rollback','x'),db.prepare('SELECT * FROM nonexistent')])).rejects.toThrow();expect(await db.prepare('SELECT * FROM settings WHERE key=?').bind('rollback').first()).toBeNull();
+},30000);
+test('does not log credential-bearing error objects',async()=>{
+const {failure}=await import('../app/server');
+const spy=vi.spyOn(console,'error').mockImplementation(()=>{});
+const e=Object.assign(new TypeError('Invalid connection: postgresql://private-credential'),{code:'ERR_INVALID_URL',input:'postgresql://private-credential'});
+expect(failure(e).status).toBe(500);
+expect(JSON.stringify(spy.mock.calls)).not.toContain('private-credential');
+expect(spy).toHaveBeenCalledWith('Lejrbalet API error',{code:'ERR_INVALID_URL'});
+spy.mockRestore();
+});
