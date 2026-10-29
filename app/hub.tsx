@@ -1,5 +1,6 @@
 'use client';
 import {readApiResponse,validateImageSize} from '../lib/http';
+import JourneyMap from './journey-map';
 import WheelPanel from './wheel-panel';
 import {useEffect,useState,useRef} from 'react';
 import {Flame,Compass,Users,CalendarDays,Swords,Plus,ScrollText,Flag,MessageCircle,Image as ImageIcon,Gem,Dices,Settings,LogOut,X,ArrowUpRight,ChevronRight,Check,Trash2,Shield,UserRound,RefreshCw} from 'lucide-react';
@@ -50,6 +51,7 @@ function Players(){return <><div className="section-title"><div><span className=
 function Avatar({p}:any){return p?.avatar?<img className="avatar" src={'/api/media/'+p.avatar} alt=""/>:<span className="avatar">{(p?.name||'L').slice(0,1).toUpperCase()}</span>}
 return <><div className="ambient"/><div className="shell"><header><a href="/" className="brand"><Flame size={37} strokeWidth={1.5}/><span>Den Pisseklamme Gaming-Hub<small>WOW FOREVER · VORES FÆLLES REJSE</small></span></a><div className="account">{signedIn?<><a className="profile-button" href="/profil"><Avatar p={me}/><span>{me?.name||'Min profil'}</span></a><a className="icon-btn" href={signOut} target="_top" aria-label="Log ud"><LogOut size={17}/></a></>:<a className="button" href={signIn} target="_top">Log ind med Discord <ArrowUpRight size={14}/></a>}</div></header>
 <nav aria-label="Hovedmenu">{[['Overblik',Compass],['Vores party',Users],['LAN & spilaftener',CalendarDays],['WANTED',Swords],['Kroen',MessageCircle],['Mere',Plus]].map(([name,Icon]:any)=><button key={name} className={tab===name?'active':''} onClick={()=>{setTab(name);setSearch('')}}><Icon size={17}/><span>{name}</span></button>)}</nav>
+{tab==='Overblik'&&<JourneyMap characters={data.entries.filter((e:any)=>e.kind==='character')} players={data.players} loading={loading}/>}
 {tab==='Overblik'&&<section className="hero"><div className="hero-content"><span className="eyebrow">WORLD OF WARCRAFT · FOREVER</span><div className="crest"><Swords size={26}/></div><h1>Den Pisseklamme<br/><em>Gaming-Hub</em></h1><div className="ornament">◆</div><h2>Til gutterne. Og alle de vilde eventyr.</h2><p>Jeres fælles lejr. De gode aftener. Historierne, vi husker.</p><button onClick={()=>open('event')}><CalendarDays size={16}/>PLANLÆG EN SPILAFTEN</button></div></section>}
 {!signedIn&&<div className="login-banner"><span>Log ind for at åbne jeres fælles lejr.</span><a href={signIn} target="_top">Log ind med Discord ↗</a><span className="small">Dit spillernavn vælger du selv.</span></div>}
 {error&&<div role="alert" className="alert">{error}<button onClick={()=>{setError('');refresh()}} aria-label="Prøv igen"><RefreshCw size={15}/></button></div>}{notice&&<div role="status" className="toast">{notice}</div>}{deleted&&<div className="alert">Opslaget er arkiveret.<button onClick={async()=>{await action({op:'restore',id:deleted});setDeleted(null)}}>Fortryd</button><button className="icon-btn" onClick={()=>setDeleted(null)} aria-label="Luk"><X size={14}/></button></div>}

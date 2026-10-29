@@ -1,0 +1,15 @@
+{
+  "description": "Illustrative Eastern Kingdoms level route. Coordinates are percentages of the background. These are editable example waypoints, not verified leveling recommendations.",
+  "waypoints": [
+    {"name":"Rejsens begyndelse","x":47,"y":88,"minLevel":1,"maxLevel":5,"order":1},
+    {"name":"De første stier","x":49,"y":80,"minLevel":7,"maxLevel":12,"order":2},
+    {"name":"Mod horisonten","x":45,"y":72,"minLevel":14,"maxLevel":19,"order":3},
+    {"name":"Gennem vildmarken","x":51,"y":65,"minLevel":21,"maxLevel":26,"order":4},
+    {"name":"Den gamle vej","x":57,"y":59,"minLevel":28,"maxLevel":32,"order":5},
+    {"name":"Over bjergpasset","x":53,"y":51,"minLevel":34,"maxLevel":39,"order":6},
+    {"name":"Nordpå","x":45,"y":47,"minLevel":41,"maxLevel":46,"order":7},
+    {"name":"De glemte egne","x":48,"y":37,"minLevel":48,"maxLevel":52,"order":8},
+    {"name":"Den sidste prøve","x":57,"y":32,"minLevel":54,"maxLevel":58,"order":9},
+    {"name":"Level 60","x":56,"y":20,"minLevel":60,"maxLevel":60,"order":10}
+  ]
+}
