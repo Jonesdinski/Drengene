@@ -33,6 +33,12 @@ expect((await call('a',{op:'update-character',id:character,entry:{kind:'characte
 const edited=(await call('a')).data.entries.find((e:any)=>e.id===character);expect(edited.title).toBe('Opdateret karakter');expect(edited.owner).toBe(a.id);expect(edited.data).toMatchObject({role:'main',class:'Priest',level:25,combatRole:'Healer',professions:['Alchemy','Herbalism'],subProfessions:['Cooking','Fishing']});
 expect((await call('a',{op:'create',entry:{kind:'character',title:'For mange professions',data:{professions:['A','B','C']}}})).status).toBe(400);
 expect((await call('a',{op:'create',entry:{kind:'character',title:'Dublet',data:{professions:['Alchemy','alchemy']}}})).status).toBe(400);
+expect((await call('b',{op:'journey-progress',id:character,level:30})).status).toBe(403);
+expect((await call('admin',{op:'journey-progress',id:character,level:30})).status).toBe(403);
+expect((await call('a',{op:'journey-progress',id:character,level:61})).status).toBe(400);
+expect((await call('a',{op:'journey-progress',id:character,level:30,color:'#00ffff',achievements:['dungeon']})).status).toBe(200);
+const progress=(await call('a')).data;expect(progress.entries.find((e:any)=>e.id===character).data.journeyMilestones.level30).toBeTruthy();expect(progress.journal.some((j:any)=>j.message==='Opdateret karakter nåede level 30')).toBe(true);
+expect((await call('a',{op:'journey-progress',id:character,color:'javascript:bad'})).status).toBe(400);
 const wanted=(await call('a',{op:'create',entry:{kind:'wanted',title:'Testmodstander',data:{severity:'orange'}}})).data.id;
 expect((await call('b',{op:'wanted-severity',id:wanted,severity:'red'})).status).toBe(403);
 expect((await call('a',{op:'wanted-severity',id:wanted,severity:'red'})).status).toBe(200);

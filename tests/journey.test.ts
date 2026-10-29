@@ -9,3 +9,11 @@ test('journey clamps levels, reaches exact endpoints and interpolates intermedia
  expect(levelPoint(2)).not.toEqual(levelPoint(1));
 });
 test('character colours are stable across refreshes',()=>{expect(characterColor('character-a')).toBe(characterColor('character-a'));expect(characterColor('character-a')).not.toBe(characterColor('character-b'));});
+
+import {journeyProgress} from '../lib/journey-progress';
+test('records only newly crossed level milestones and keeps original reached timestamps',()=>{
+ const a=journeyProgress({level:9},{level:21},'2026-10-29T10:00:00Z');
+ expect(a.journeyMilestones).toEqual({level10:'2026-10-29T10:00:00Z',level20:'2026-10-29T10:00:00Z'});
+ const b=journeyProgress(a,{...a,level:30},'2026-10-29T11:00:00Z');expect(b.journeyMilestones.level10).toBe(a.journeyMilestones.level10);expect(b.journeyMilestones.level30).toBe('2026-10-29T11:00:00Z');
+ expect(journeyProgress({level:40},{level:41},'now').journeyMilestones).toEqual({});
+});

@@ -19,4 +19,4 @@ export function smoothPath(points:Point[]){
  return d;
 }
 export function characterPath(level:number,lane=0){const end=Math.max(1,Math.min(60,level||1));return smoothPath([...route.filter(p=>p.minLevel<end),levelPoint(end)].map(p=>({x:p.x+lane,y:p.y})));}
-export function characterColor(id:string){let hash=0;for(const ch of id)hash=(hash*31+ch.charCodeAt(0))>>>0;return `hsl(${hash%360} 95% 67%)`;}
+export function characterColor(id:string){let hash=0;for(const ch of id)hash=(hash*31+ch.charCodeAt(0))>>>0;const h=(hash%360)/60,s=.95,l=.67,c=(1-Math.abs(2*l-1))*s,x=c*(1-Math.abs(h%2-1)),m=l-c/2;const rgb=h<1?[c,x,0]:h<2?[x,c,0]:h<3?[0,c,x]:h<4?[0,x,c]:h<5?[x,0,c]:[c,0,x];return '#'+rgb.map(v=>Math.round((v+m)*255).toString(16).padStart(2,'0')).join('');}
