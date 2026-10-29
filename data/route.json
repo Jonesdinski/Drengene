@@ -118,18 +118,6 @@
       "title": "Level 60",
       "level": 60,
       "icon": "★"
-    },
-    {
-      "id": "dungeon",
-      "title": "Første dungeon",
-      "level": 18,
-      "icon": "⚔"
-    },
-    {
-      "id": "mount",
-      "title": "Første mount",
-      "level": 40,
-      "icon": "♞"
     }
   ]
 }
