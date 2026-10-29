@@ -24,6 +24,15 @@ expect((await call('b',{op:'character-role',id:character,role:'alt'})).status).t
 expect((await call('a',{op:'character-role',id:character,role:'alt'})).status).toBe(200);
 expect((await call('a')).data.entries.find((e:any)=>e.id===character).data).toMatchObject({role:'alt',class:'Mage'});
 expect((await call('a',{op:'character-role',id:character,role:'bad'})).status).toBe(400);
+expect((await call('b',{op:'character-combat-role',id:character,combatRole:'Tank'})).status).toBe(403);
+expect((await call('a',{op:'character-combat-role',id:character,combatRole:'Healer'})).status).toBe(200);
+expect((await call('a')).data.entries.find((e:any)=>e.id===character).data).toMatchObject({role:'alt',class:'Mage',combatRole:'Healer'});
+expect((await call('a',{op:'character-combat-role',id:character,combatRole:'PvP'})).status).toBe(400);
+const wanted=(await call('a',{op:'create',entry:{kind:'wanted',title:'Testmodstander',data:{severity:'orange'}}})).data.id;
+expect((await call('b',{op:'wanted-severity',id:wanted,severity:'red'})).status).toBe(403);
+expect((await call('a',{op:'wanted-severity',id:wanted,severity:'red'})).status).toBe(200);
+expect((await call('a')).data.entries.find((e:any)=>e.id===wanted).data.severity).toBe('red');
+expect((await call('a',{op:'wanted-severity',id:wanted,severity:'blue'})).status).toBe(400);
 const poll=(await call('a',{op:'create',entry:{kind:'poll',title:'Hvad spiller vi?',data:{options:['WoW','Andet']}}})).data.id;
 expect((await call('b',{op:'action',id:poll,kind:'vote',value:'Ukendt'})).status).toBe(403);
 for(const value of ['WoW','Andet'])expect((await call('b',{op:'action',id:poll,kind:'vote',value})).status).toBe(200);
