@@ -1,0 +1,42 @@
+name: Build Windows Sync
+on:
+  push:
+    branches: [main]
+    paths: ['desktop/**', '.github/workflows/windows-sync.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Check the safe SavedVariables parser
+        run: dotnet run --project desktop/ParserChecks -c Release
+      - name: Publish self-contained Windows app
+        run: dotnet publish desktop/LejrbaletSync -c Release -o desktop/publish --self-contained true
+      - name: Install NSIS
+        run: choco install nsis --yes --no-progress
+      - name: Build installer
+        shell: pwsh
+        run: |
+          & "${env:ProgramFiles(x86)}\NSIS\makensis.exe" desktop\installer.nsi
+          if ($LASTEXITCODE -ne 0) { throw 'Installer build failed' }
+          Get-FileHash desktop\LejrbaletSync-Setup.exe -Algorithm SHA256 | Format-List
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LejrbaletSync-Windows-x64
+          path: desktop/LejrbaletSync-Setup.exe
+      - name: Publish download
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view sync-v0.1.0 *> $null
+          if ($LASTEXITCODE -ne 0) { gh release create sync-v0.1.0 --target "${{ github.sha }}" --title "Lejrbalet Sync 0.1.0" --notes-file desktop/RELEASE.md }
+          if ($LASTEXITCODE -ne 0) { throw 'Release creation failed' }
+          gh release upload sync-v0.1.0 desktop/LejrbaletSync-Setup.exe --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Release upload failed' }

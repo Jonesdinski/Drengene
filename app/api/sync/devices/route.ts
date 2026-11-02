@@ -1,0 +1,9 @@
+import {z} from 'zod';
+import {connection} from '../../../../lib/database';
+import {identity,origin,json,failure,hash} from '../../../server';
+export async function GET(){try{const p=await identity();const devices=await connection().unsafe('SELECT id,name,created,expires,revoked,last_seen FROM lejrbalet.sync_devices WHERE owner=$1 ORDER BY created DESC',[p.id]);return json({devices});}catch(e){return failure(e);}}
+export async function POST(req:Request){try{origin(req);const p=await identity();if(Number(req.headers.get('content-length'))>2000)return json({error:'For meget indhold.'},413);const raw=await req.text();if(raw.length>2000)return json({error:'For meget indhold.'},413);const b=z.object({op:z.enum(['create','revoke']),name:z.string().trim().min(1).max(60).optional(),id:z.string().uuid().optional()}).parse(JSON.parse(raw));
+ const result=await connection().begin(async tx=>{await tx.unsafe('SELECT id FROM lejrbalet.profiles WHERE id=$1 FOR UPDATE',[p.id]);if(b.op==='revoke'){if(!b.id)throw Error('403');await tx.unsafe('UPDATE lejrbalet.sync_devices SET revoked=COALESCE(revoked,now()) WHERE id=$1 AND owner=$2',[b.id,p.id]);return {ok:true};}
+ const count=Number((await tx.unsafe('SELECT count(*) AS n FROM lejrbalet.sync_devices WHERE owner=$1 AND revoked IS NULL AND expires>now()',[p.id]))[0].n);if(count>=10)throw Error('DEVICE_LIMIT');
+ const bytes=crypto.getRandomValues(new Uint8Array(32));const token='ljbs1_'+Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');const expires=new Date(Date.now()+365*86400000).toISOString();await tx.unsafe('INSERT INTO lejrbalet.sync_devices(id,owner,name,token_hash,expires) VALUES($1,$2,$3,$4,$5)',[crypto.randomUUID(),p.id,b.name||'Min Windows-pc',await hash(token),expires]);return {token,expires};});return json(result);
+ }catch(e:any){return e.message==='DEVICE_LIMIT'?json({error:'Du kan højst have 10 aktive enheder. Afbryd en gammel enhed først.'},409):failure(e);}}

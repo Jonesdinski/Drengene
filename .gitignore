@@ -6,3 +6,7 @@ node_modules/
 *.tsbuildinfo
 coverage/
 .DS_Store
+desktop/**/bin/
+desktop/**/obj/
+desktop/publish/
+desktop/*.exe
