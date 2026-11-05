@@ -47,7 +47,7 @@ final class App: NSObject, NSApplicationDelegate, NSWindowDelegate {
         window.contentView!.addSubview(stack)
         NSLayoutConstraint.activate([stack.leadingAnchor.constraint(equalTo:window.contentView!.leadingAnchor,constant:26),stack.trailingAnchor.constraint(equalTo:window.contentView!.trailingAnchor,constant:-26),stack.topAnchor.constraint(equalTo:window.contentView!.topAnchor,constant:24)])
         let title = NSTextField(labelWithString:"Dine karakterer. Din hub."); title.font = .boldSystemFont(ofSize:25); title.textColor = .systemOrange; stack.addArrangedSubview(title)
-        func label(_ text: String) { stack.addArrangedSubview(NSTextField(wrappingLabelWithString:text)) }
+        func label(_ text: String) { let field = NSTextField(wrappingLabelWithString:text); stack.addArrangedSubview(field); field.widthAnchor.constraint(equalToConstant:580).isActive = true }
         func button(_ title: String, _ selector: Selector) -> NSButton { NSButton(title:title,target:self,action:selector) }
         label("1. Åbn guiden og opret din personlige forbindelsesnøgle.")
         stack.addArrangedSubview(button("Åbn opsætningsguiden",#selector(openGuide)))
@@ -59,7 +59,7 @@ final class App: NSObject, NSApplicationDelegate, NSWindowDelegate {
         startup.state = SMAppService.mainApp.status == .enabled || settings.folder.isEmpty ? .on : .off; startup.target = self; startup.action = #selector(changeStartup); stack.addArrangedSubview(startup)
         enabled.state = settings.autoUpload ? .on : .off; enabled.target = self; enabled.action = #selector(changeEnabled); stack.addArrangedSubview(enabled)
         let actions = NSStackView(views:[button("Gem og forbind",#selector(saveAndSync)),button("Synkronisér nu",#selector(forceSync)),button("Tilknyt karakterer",#selector(openImport))]); actions.spacing = 8; stack.addArrangedSubview(actions)
-        status.font = .systemFont(ofSize:13); stack.addArrangedSubview(status)
+        status.font = .systemFont(ofSize:13); stack.addArrangedSubview(status); status.widthAnchor.constraint(equalToConstant:580).isActive = true
         label("Luk vinduet med den røde knap — appen synkroniserer videre i menulinjen. Vælg Afslut i menulinjen for at stoppe den helt.")
         tray = NSStatusBar.system.statusItem(withLength:NSStatusItem.variableLength); tray.button?.image = NSImage(systemSymbolName:"flame.fill",accessibilityDescription:"Lejrbalet Sync")
         let menu = NSMenu()
