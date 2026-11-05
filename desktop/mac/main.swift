@@ -144,6 +144,11 @@ final class App: NSObject, NSApplicationDelegate, NSWindowDelegate {
         catch { report("Filen eller forbindelsen er utilgængelig. Prøver igen automatisk. Kontrollér WoW-mappen og internet.") }
     }
 }
-let delegate = App()
-NSApplication.shared.delegate = delegate
-NSApplication.shared.run()
+@main
+struct Entry {
+    @MainActor static func main() {
+        let delegate = App()
+        NSApplication.shared.delegate = delegate
+        withExtendedLifetime(delegate) { NSApplication.shared.run() }
+    }
+}

@@ -5,7 +5,7 @@ mkdir -p build/Lejrbalet\ Sync.app/Contents/MacOS
 swiftc -swift-version 5 FlockReader.swift ParserChecks.swift -o build/parser-checks
 build/parser-checks
 for arch in arm64 x86_64; do
-  swiftc -swift-version 5 -target "${arch}-apple-macos13.0" -O FlockReader.swift main.swift -o "build/LejrbaletSync-${arch}" -framework AppKit -framework Security -framework ServiceManagement -framework Carbon
+  swiftc -parse-as-library -swift-version 5 -target "${arch}-apple-macos13.0" -O FlockReader.swift main.swift -o "build/LejrbaletSync-${arch}" -framework AppKit -framework Security -framework ServiceManagement -framework Carbon
  done
 lipo -create build/LejrbaletSync-arm64 build/LejrbaletSync-x86_64 -output 'build/Lejrbalet Sync.app/Contents/MacOS/LejrbaletSync'
 cp Info.plist 'build/Lejrbalet Sync.app/Contents/Info.plist'
