@@ -12,7 +12,7 @@ Den røde luk-knap skjuler vinduet. Appen og sync fortsætter i menulinjen ved f
 
 Forbindelsesnøglen opbevares i macOS' nøglering. Almindelige indstillinger og fil-hashes gemmes i ~/Library/Application Support/LejrbaletSync. Kun egne karakterers udvalgte felter sendes til hubben over HTTPS. Ingen Lua-kode køres.
 
-Dette er en usigneret/notariseringsfri testudgave (kun lokal ad hoc-signatur), ikke Apple Developer ID-signeret. macOS kan blokere åbning. Godkend kun den forventede download fra dette repository; Slå ikke Gatekeeper fra. Ved behov kan den konkrete app godkendes via Systemindstillinger → Anonymitet & sikkerhed. Organisationens politik kan forhindre dette.
+Dette er en testudgave uden udgiversignatur og Apple-notarisering (kun lokal ad hoc-signatur), ikke Apple Developer ID-signeret. macOS kan blokere åbning. Godkend kun den forventede download fra dette repository; Slå ikke Gatekeeper fra. Ved behov kan den konkrete app godkendes via Systemindstillinger → Anonymitet & sikkerhed. Organisationens politik kan forhindre dette.
 
 CI bygger begge processorarkitekturer, tester parseren og tester, at vinduet kan lukkes, mens timer og menulinje fortsætter. En rigtig FlockSync-fil, WoW-installation, nøglering og genstart/login på brugerens Mac skal stadig afprøves. WoW Forever skal kunne køre lokalt og skrive SavedVariables på Mac; denne app gør ikke selve spillet Mac-kompatibelt. Ved Wine/CrossOver vælges den faktiske klientmappe i bottle/Windows-drevet.
 

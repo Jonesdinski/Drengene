@@ -41,7 +41,7 @@ final class App: NSObject, NSApplicationDelegate, NSWindowDelegate {
         NSApp.setActivationPolicy(.accessory)
         if let data = try? Data(contentsOf:dataDir.appendingPathComponent("settings.json")), let s = try? JSONDecoder().decode(Settings.self,from:data) { settings = s }
         token = Keychain.read()
-        window = NSWindow(contentRect:NSRect(x:0,y:0,width:640,height:610),styleMask:[.titled,.closable,.miniaturizable],backing:.buffered,defer:false)
+        window = NSWindow(contentRect:NSRect(x:0,y:0,width:640,height:680),styleMask:[.titled,.closable,.miniaturizable],backing:.buffered,defer:false)
         window.title = "Lejrbalet Sync · 0.2.0"; window.delegate = self; window.isReleasedWhenClosed = false; window.center()
         let stack = NSStackView(); stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 14; stack.translatesAutoresizingMaskIntoConstraints = false
         window.contentView!.addSubview(stack)
@@ -65,7 +65,10 @@ final class App: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let menu = NSMenu()
         for (title, selector) in [("Åbn Lejrbalet Sync",#selector(reveal)),("Synkronisér nu",#selector(forceSync)),("Tilknyt nye karakterer",#selector(openImport)),("Afslut Lejrbalet Sync",#selector(quit))] { let item = NSMenuItem(title:title,action:selector,keyEquivalent:""); item.target = self; menu.addItem(item) }
         tray.menu = menu
-        let mainMenu = NSMenu(); let root = NSMenuItem(); let appMenu = NSMenu(); let quitItem = NSMenuItem(title:"Afslut Lejrbalet Sync",action:#selector(quit),keyEquivalent:"q"); quitItem.target = self; appMenu.addItem(quitItem); root.submenu = appMenu; mainMenu.addItem(root); NSApp.mainMenu = mainMenu
+        let mainMenu = NSMenu(); let root = NSMenuItem(); let appMenu = NSMenu(); let quitItem = NSMenuItem(title:"Afslut Lejrbalet Sync",action:#selector(quit),keyEquivalent:"q"); quitItem.target = self; appMenu.addItem(quitItem); root.submenu = appMenu; mainMenu.addItem(root)
+        let editRoot = NSMenuItem(); editRoot.title = "Redigér"; let editMenu = NSMenu(title:"Redigér")
+        for (title, action, shortcut) in [("Klip",#selector(NSText.cut(_:)),"x"),("Kopiér",#selector(NSText.copy(_:)),"c"),("Indsæt",#selector(NSText.paste(_:)),"v"),("Vælg alt",#selector(NSText.selectAll(_:)),"a")] { editMenu.addItem(NSMenuItem(title:title,action:action,keyEquivalent:shortcut)) }
+        editRoot.submenu = editMenu; mainMenu.addItem(editRoot); NSApp.mainMenu = mainMenu
         let loginLaunch = NSAppleEventManager.shared().currentAppleEvent?.paramDescriptor(forKeyword:AEKeyword(keyAEPropData))?.enumCodeValue == OSType(keyAELaunchedAsLogInItem)
         if !CommandLine.arguments.contains("--background") && !loginLaunch { reveal() }
         timer = Timer.scheduledTimer(withTimeInterval:15,repeats:true) { [weak self] _ in Task { @MainActor in await self?.sync(false) } }
