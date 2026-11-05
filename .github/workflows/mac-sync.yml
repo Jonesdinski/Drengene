@@ -6,12 +6,12 @@ on:
   workflow_dispatch:
 concurrency:
   group: mac-sync-release
-  cancel-in-progress: false
+  cancel-in-progress: true
 permissions:
   contents: write
 jobs:
   mac:
-    runs-on: macos-latest
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
       - name: Check parser, build universal app and test background lifecycle
