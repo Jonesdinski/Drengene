@@ -10,7 +10,17 @@ concurrency:
 permissions:
   contents: write
 jobs:
+  parser:
+    runs-on: ubuntu-latest
+    container: swift:6.0
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check independent Swift parser
+        run: |
+          swiftc -swift-version 5 desktop/mac/FlockReader.swift desktop/mac/ParserChecks.swift -o /tmp/parser-checks
+          /tmp/parser-checks
   mac:
+    needs: parser
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4

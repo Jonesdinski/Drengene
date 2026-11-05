@@ -2,7 +2,7 @@ name: Build Windows Sync
 on:
   push:
     branches: [main]
-    paths: ['desktop/**', '.github/workflows/windows-sync.yml']
+    paths: ['desktop/LejrbaletSync/**', 'desktop/ParserChecks/**', 'desktop/installer.nsi', 'desktop/RELEASE.md', '.github/workflows/windows-sync.yml']
   workflow_dispatch:
 concurrency:
   group: windows-sync-release
