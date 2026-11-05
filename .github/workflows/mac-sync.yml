@@ -1,0 +1,28 @@
+name: Build Mac Sync
+on:
+  push:
+    branches: [main]
+    paths: ['desktop/mac/**', '.github/workflows/mac-sync.yml']
+  workflow_dispatch:
+concurrency:
+  group: mac-sync-release
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check parser, build universal app and test background lifecycle
+        run: bash desktop/mac/build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LejrbaletSync-Mac-Universal
+          path: desktop/mac/build/LejrbaletSync-Mac.dmg
+      - name: Publish Mac download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view mac-sync-v0.2.0 >/dev/null 2>&1 || gh release create mac-sync-v0.2.0 --target '${{ github.sha }}' --title 'Lejrbalet Sync for Mac 0.2.0' --notes-file desktop/mac/README.md
+          gh release upload mac-sync-v0.2.0 desktop/mac/build/LejrbaletSync-Mac.dmg --clobber

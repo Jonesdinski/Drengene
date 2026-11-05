@@ -10,3 +10,5 @@ desktop/**/bin/
 desktop/**/obj/
 desktop/publish/
 desktop/*.exe
+
+desktop/mac/build/

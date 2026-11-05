@@ -38,8 +38,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view sync-v0.1.1 *> $null
-          if ($LASTEXITCODE -ne 0) { gh release create sync-v0.1.1 --target "${{ github.sha }}" --title "Lejrbalet Sync 0.1.1" --notes-file desktop/RELEASE.md }
+          gh release view sync-v0.2.0 *> $null
+          if ($LASTEXITCODE -ne 0) { gh release create sync-v0.2.0 --target "${{ github.sha }}" --title "Lejrbalet Sync 0.2.0" --notes-file desktop/RELEASE.md }
           if ($LASTEXITCODE -ne 0) { throw 'Release creation failed' }
-          gh release upload sync-v0.1.1 desktop/LejrbaletSync-Setup.exe --clobber
+          gh release upload sync-v0.2.0 desktop/LejrbaletSync-Setup.exe --clobber
           if ($LASTEXITCODE -ne 0) { throw 'Release upload failed' }
