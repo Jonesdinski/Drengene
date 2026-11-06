@@ -12,6 +12,8 @@ afterAll(()=>pg.close());
 async function call(user:string|null,body?:any,origin='https://lejrbalet.test'){state.user=user?{userId:user,email:user+'@example.test'}:null;const routes=await import('../app/api/hub/route');const r=body?await routes.POST(new Request('https://lejrbalet.test/api/hub',{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify(body)})):await routes.GET();return {status:r.status,data:await r.json()};}
 test('shared PostgreSQL data, identities, permissions, votes, tokens, transactions and privacy',async()=>{
 expect((await call(null)).status).toBe(401);
+await pg.query("INSERT INTO lejrbalet.settings(key,value) VALUES('private_discord_webhook','TEST_SECRET_NEVER_EXPOSE')");
+expect(JSON.stringify((await call('a')).data)).not.toContain('TEST_SECRET_NEVER_EXPOSE');
 const a=(await call('a')).data.me,b=(await call('b')).data.me;expect(a.id).not.toBe(b.id);expect((await call('a')).data.me.id).toBe(a.id);expect(JSON.stringify((await call('a')).data)).not.toContain('@example.test');
 for(const name of ['a','b'])expect((await call(name,{op:'profile',name:'Samme spillernavn',bio:'',avatar:null})).status).toBe(200);
 expect((await call('b')).data.me.id).toBe(b.id);

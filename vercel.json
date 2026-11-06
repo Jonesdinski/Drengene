@@ -1,1 +1,16 @@
-{"framework":"nextjs","buildCommand":"npm run build","installCommand":"npm ci","functions":{"app/api/**/*.ts":{"maxDuration":30}}}
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "installCommand": "npm ci",
+  "functions": {
+    "app/api/**/*.ts": {
+      "maxDuration": 30
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/postcard",
+      "schedule": "0 17 * * 5"
+    }
+  ]
+}

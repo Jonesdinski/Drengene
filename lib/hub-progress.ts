@@ -1,0 +1,2 @@
+export function fractionalLevel(d:any){const level=Math.max(1,Math.min(60,Number(d.level)||1));return level>=60?60:level+(Number.isFinite(d.xp)&&Number.isFinite(d.xpMax)&&d.xpMax>0?Math.max(0,Math.min(.999999,d.xp/d.xpMax)):0);}
+export function postcardWeek(now=new Date()){const d=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate()));d.setUTCDate(d.getUTCDate()-((d.getUTCDay()+6)%7));return d.toISOString().slice(0,10);}
