@@ -22,3 +22,6 @@ NSIS 3: `makensis desktop/installer.nsi`. The GitHub Windows workflow also build
 
 ## Verification limits
 No real player file has been supplied yet. Automated tests use representative SavedVariables fixtures based on documented fields. Before broader rollout, test on Windows: install, no runtime dependency, token DPAPI persistence, folder selection, a real reload/logout, main/alt approval, offline retry, tray close/reopen, login startup, pause/resume, disabling startup and uninstall. Validate that newer levels journal once, colours/roles/notes survive, stale files do not lower levels, and revoked keys stop uploads. Never describe this checklist as passed until performed.
+
+## 0.4.0: vores eget addon
+Installér Lejrbalet Sync-addonet og brug /lejrbalet. Klienterne foretrækker LejrbaletSync.lua pr. konto og bruger ellers FlockSync.lua som overgang. GUID og realm bevarer de eksisterende karaktertilknytninger. Guld, XP og sidste position er med i de validerede data. Klienterne får fælles lejrbålsikon og mørkt/orange design. Installation erstatter programmet, men bevarer den eksisterende forbindelsesnøgle og konto.

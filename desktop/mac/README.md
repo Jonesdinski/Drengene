@@ -1,4 +1,4 @@
-# Lejrbalet Sync til Mac 0.3.0
+# Lejrbalet Sync til Mac 0.4.0
 
 Til macOS 13 Ventura eller nyere, både Apple Silicon og Intel. Selvstændig app uden ekstra runtime.
 
@@ -17,3 +17,6 @@ Dette er en testudgave uden udgiversignatur og Apple-notarisering (kun lokal ad 
 CI bygger begge processorarkitekturer, tester parseren og tester, at vinduet kan lukkes, mens timer og menulinje fortsætter. En rigtig FlockSync-fil, WoW-installation, nøglering og genstart/login på brugerens Mac skal stadig afprøves. WoW Forever skal kunne køre lokalt og skrive SavedVariables på Mac; denne app gør ikke selve spillet Mac-kompatibelt. Ved Wine/CrossOver vælges den faktiske klientmappe i bottle/Windows-drevet.
 
 Byg på Mac: `bash desktop/mac/build.sh`. Koden er en uafhængig uploader og indeholder ikke FlockSync-udviklerens kode.
+
+## 0.4.0
+Fælles lejrbålsikon til app og menulinje. Varm mørk baggrund med orange knapper. Læser vores eget addons LejrbaletSync.lua; bruger FlockSync.lua, hvis den nye fil endnu ikke findes i kontomappen. Guld, XP, lokation, gear og professionsniveauer følger med. Eksisterende konto og nøglering bevares ved opdatering. Brug /lejrbalet og /reload i spillet.

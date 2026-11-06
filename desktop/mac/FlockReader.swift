@@ -3,15 +3,17 @@ import Foundation
 struct ProfessionSkill: Codable { let name: String; let level: Int; let maxLevel: Int }
 struct GearItem: Codable { let slotId: Int; let itemId: Int; let itemLink: String }
 struct GearSnapshot: Codable { let updatedAt: Int64; let items: [GearItem] }
+struct Location: Codable {let zone: String?; let subZone: String?; let mapId: Int64?; let x: Double?; let y: Double?; let updatedAt: Int64}
 struct Character: Codable {
     let guid: String, realm: String, name: String, `class`: String
     let level: Int, capturedAt: Int64
     let professions: [String]?, subProfessions: [String]?
     let professionSkills: [ProfessionSkill]?, gear: GearSnapshot?
+    let goldCopper: Int64?, xp: Int64?, xpMax: Int64?, location: Location?, source: String?
 }
 enum FlockError: Error, LocalizedError {
     case invalid
-    var errorDescription: String? { "Ugyldig eller ufuldstændig FlockSync-fil. Scan i WoW og log ud igen." }
+    var errorDescription: String? { "Ugyldig eller ufuldstændig sync-fil. Scan i WoW og log ud igen." }
 }
 // Data only: no Lua execution, scripts or third-party addon code.
 final class FlockReader {
@@ -93,8 +95,20 @@ final class FlockReader {
     static func map(_ v: Value?) -> [String: Value] { if case .table(let d) = v { return d }; return [:] }
     static func text(_ d: [String: Value], _ k: String) -> String { if case .text(let s) = d[k] { return s }; return "" }
     static func number(_ d: [String: Value], _ k: String) -> Int64 { if case .number(let n) = d[k], n >= 0, n < Double(Int64.max), n.rounded() == n { return Int64(n) }; return 0 }
+    static func optionalNumber(_ r: [String:Value], _ key: String, _ maximum: Int64) throws -> Int64? {
+        guard let v = r[key] else { return nil }; if case .null = v { return nil }
+        guard case .number(let n) = v, n >= 0, n <= Double(maximum), n.rounded() == n else { throw FlockError.invalid }; return Int64(n)
+    }
+    static func coordinate(_ r: [String:Value], _ key: String) throws -> Double? { guard let v = r[key] else { return nil }; guard case .number(let n) = v, n.isFinite, n >= 0, n <= 1 else { throw FlockError.invalid }; return n }
+    static func readLocation(_ r: [String:Value]) throws -> Location? {
+        guard let value = r["location"] else { return nil }; guard case .table(let d) = value else { throw FlockError.invalid }
+        let timestamp = number(d,"updatedAt"), map = try optionalNumber(d,"mapId",10000000), x = try coordinate(d,"x"), y = try coordinate(d,"y")
+        let zone = d["zone"] == nil ? nil : text(d,"zone"), sub = d["subZone"] == nil ? nil : text(d,"subZone")
+        guard timestamp > 0, timestamp <= Int64(Date().timeIntervalSince1970)+300, map != 0, (zone?.utf16.count ?? 0) <= 120, (sub?.utf16.count ?? 0) <= 120, (x == nil) == (y == nil) else { throw FlockError.invalid }
+        return Location(zone:zone,subZone:sub,mapId:map,x:x,y:y,updatedAt:timestamp)
+    }
     static func read(_ data: Data) throws -> [Character] {
-        let p = try FlockReader(data); p.space(); guard p.identifier() == "FlockSyncDB" else { throw FlockError.invalid }
+        let p = try FlockReader(data); p.space(); let root = p.identifier(); guard root == "FlockSyncDB" || root == "LejrbaletDB" else { throw FlockError.invalid }
         try p.expect(61); let db = map(try p.value()); p.space()
         if p.i < p.bytes.count && p.bytes[p.i] == 59 { p.i += 1; p.space() }
         guard p.i == p.bytes.count, db["accountCharacters"] != nil, db["characters"] != nil else { throw FlockError.invalid }
@@ -140,7 +154,7 @@ final class FlockReader {
                     gear = GearSnapshot(updatedAt:updated,items:equipment)
                 }
             }
-            result.append(Character(guid:guid,realm:realm,name:name,class:cls,level:Int(level),capturedAt:captured,professions:prim.isEmpty ? nil : prim,subProfessions:sub.isEmpty ? nil : sub,professionSkills:skills.isEmpty ? nil : skills,gear:gear))
+            result.append(Character(guid:guid,realm:realm,name:name,class:cls,level:Int(level),capturedAt:captured,professions:prim.isEmpty ? nil : prim,subProfessions:sub.isEmpty ? nil : sub,professionSkills:skills.isEmpty ? nil : skills,gear:gear,goldCopper:try optionalNumber(r,"goldCopper",9000000000000),xp:try optionalNumber(r,"xp",1000000000),xpMax:try optionalNumber(r,"xpMax",1000000000),location:try readLocation(r),source:root == "LejrbaletDB" ? "lejrbalet" : nil))
         }
         return result
     }

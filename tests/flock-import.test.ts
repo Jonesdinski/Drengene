@@ -35,3 +35,14 @@ test('gear snapshot schema rejects injection and invalid ranks; empty fresh snap
  for(const extra of [{gear:{...gear,items:[gear.items[0],gear.items[0]]}},{gear:{...gear,items:[{...gear.items[0],itemLink:'https://evil.test'}]}},{professionSkills:[{name:'Alchemy',level:226,maxLevel:225}]}])expect(()=>importSchema.parse({characters:[{...base,...extra}]})).toThrow();
  expect(importSchema.parse({characters:[{...base,gear:{updatedAt:stamp,items:[]}}]}).characters[0].gear?.items).toEqual([]);
 });
+
+
+test('original addon fixture preserves gold including zero, XP, location and source; rejects unsafe progress',async()=>{
+ const fixture=await readFile(new URL('./fixtures/lejrbalet.lua',import.meta.url),'utf8');
+ const c=parseFlockFile(fixture)[0];expect(c).toMatchObject({goldCopper:123456,xp:250,xpMax:1000,source:'lejrbalet',location:{zone:'Durotar',subZone:'Razor Hill',x:0.52,y:0.43}});
+ const {importSchema}=await import('../app/api/import/route');expect(importSchema.parse({characters:[c]}).characters[0].goldCopper).toBe(123456);
+ expect(parseFlockFile(fixture.replace('["goldCopper"]=123456','["goldCopper"]=0'))[0].goldCopper).toBe(0);
+ expect(()=>parseFlockFile(fixture.replace('["goldCopper"]=123456','["goldCopper"]=-1'))).toThrow();
+ expect(()=>parseFlockFile(fixture.replace('["x"]=0.52','["x"]=1.5'))).toThrow();
+ expect(()=>parseFlockFile(fixture.replace('LejrbaletDB','UnknownDB'))).toThrow();
+});

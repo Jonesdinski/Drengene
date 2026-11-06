@@ -3,11 +3,19 @@ set -euo pipefail
 cd "$(dirname "$0")"
 mkdir -p build/Lejrbalet\ Sync.app/Contents/MacOS
 swiftc -swift-version 5 FlockReader.swift ParserChecks.swift -o build/parser-checks
-build/parser-checks
+(cd ../.. && desktop/mac/build/parser-checks)
 for arch in arm64 x86_64; do
   swiftc -parse-as-library -swift-version 5 -target "${arch}-apple-macos13.0" -O FlockReader.swift main.swift -o "build/LejrbaletSync-${arch}" -framework AppKit -framework Security -framework ServiceManagement -framework Carbon
  done
 lipo -create build/LejrbaletSync-arm64 build/LejrbaletSync-x86_64 -output 'build/Lejrbalet Sync.app/Contents/MacOS/LejrbaletSync'
+mkdir -p 'build/Lejrbalet Sync.app/Contents/Resources' build/AppIcon.iconset
+for size in 16 32 128 256 512; do
+  sips -z "$size" "$size" AppIcon.png --out "build/AppIcon.iconset/icon_${size}x${size}.png" >/dev/null
+  double=$((size * 2))
+  sips -z "$double" "$double" AppIcon.png --out "build/AppIcon.iconset/icon_${size}x${size}@2x.png" >/dev/null
+done
+iconutil -c icns build/AppIcon.iconset -o 'build/Lejrbalet Sync.app/Contents/Resources/AppIcon.icns'
+cp AppIcon.png TrayIcon.png 'build/Lejrbalet Sync.app/Contents/Resources/'
 cp Info.plist 'build/Lejrbalet Sync.app/Contents/Info.plist'
 codesign --force --deep --sign - 'build/Lejrbalet Sync.app'
 codesign --verify --deep --strict 'build/Lejrbalet Sync.app'

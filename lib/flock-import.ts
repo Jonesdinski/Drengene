@@ -1,3 +1,4 @@
+import {progressSchema} from './sync-schema';
 import {readGear,type GearSnapshot,type ProfessionSkill} from './armory';
 // Independent, data-only reader. Never evaluates Lua or loads addon code.
 export function readSavedVariables(source:string):any{
@@ -7,14 +8,14 @@ export function readSavedVariables(source:string):any{
  function quoted(){const quote=source[i++];let out='';while(i<source.length){let c=source[i++];if(c===quote)return out;if(c==='\\'){c=source[i++];const escapes:Record<string,string>={n:'\n',r:'\r',t:'\t',b:'\b',f:'\f',v:'\v',a:'\x07','\\':'\\','"':'"',"'":"'"};if(/[0-9]/.test(c)){let digits=c;while(digits.length<3&&/[0-9]/.test(source[i]||''))digits+=source[i++];const byte=Number(digits);if(byte>255)fail();out+=String.fromCharCode(byte);}else if(c in escapes)out+=escapes[c];else fail();}else out+=c;if(out.length>1000000)fail();}return fail();}
  function value(depth=0):any{ws();if(depth>40||++nodes>200000)fail();const c=source[i];if(c==='"'||c==="'")return quoted();if(c==='{'){i++;const obj=Object.create(null);let index=1;while(true){ws();if(source[i]==='}'){i++;return obj;}let key:string|number,entry:any;if(source[i]==='['){i++;key=value(depth+1);if(!['string','number'].includes(typeof key))fail();ws();if(source[i++]!==']')fail();ws();if(source[i++]!=='=')fail();entry=value(depth+1);}else{const start=i;const id=/^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(i));if(id){i+=id[0].length;ws();}if(id&&source[i]==='='){key=id[0];i++;entry=value(depth+1);}else{i=start;key=index++;entry=value(depth+1);}}if(['__proto__','constructor','prototype'].includes(String(key)))fail();obj[key!]=entry;ws();if(source[i]===','||source[i]===';')i++;else if(source[i]!=='}')fail();} }
  const token=/^(true|false|nil)(?![A-Za-z0-9_])/.exec(source.slice(i));if(token){i+=token[0].length;return token[0]==='nil'?null:token[0]==='true';}const num=/^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/.exec(source.slice(i));if(num){i+=num[0].length;const n=Number(num[0]);if(!Number.isFinite(n))fail();return n;}return fail();}
- ws();if(source.slice(i,i+11)!=='FlockSyncDB')fail();i+=11;ws();if(source[i++]!=='=')fail();const db=value();ws();if(source[i]===';'){i++;ws();}if(i!==source.length)fail();return db;
+ ws();const root=/^(FlockSyncDB|LejrbaletDB)/.exec(source.slice(i));if(!root)fail();i+=root![0].length;ws();if(source[i++]!=='=')fail();const db=value();ws();if(source[i]===';'){i++;ws();}if(i!==source.length)fail();Object.defineProperty(db,'__root',{value:root![0]});return db;
 }
-export type FlockCharacter={guid:string;realm:string;name:string;class:string;level:number;capturedAt:number;professions?:string[];subProfessions?:string[];professionSkills?:ProfessionSkill[];gear?:GearSnapshot};
+export type FlockCharacter={guid:string;realm:string;name:string;class:string;level:number;capturedAt:number;professions?:string[];subProfessions?:string[];professionSkills?:ProfessionSkill[];gear?:GearSnapshot;goldCopper?:number;xp?:number;xpMax?:number;location?:{zone?:string;subZone?:string;mapId?:number;x?:number;y?:number;updatedAt:number};source?:'lejrbalet'|'flocksync'};
 const classes:Record<number,string>={1:'Warrior',2:'Paladin',3:'Hunter',4:'Rogue',5:'Priest',7:'Shaman',8:'Mage',9:'Warlock',11:'Druid'};
 const primary=new Set(['Alchemy','Blacksmithing','Enchanting','Engineering','Herbalism','Leatherworking','Mining','Skinning','Tailoring']);
 const secondary=new Set(['Cooking','Fishing','First Aid']);
 export function parseFlockFile(source:string):FlockCharacter[]{
- const db=readSavedVariables(source);if(!db?.characters||typeof db.characters!=='object'||!db.accountCharacters||typeof db.accountCharacters!=='object')throw Error('Vælg FlockSync.lua fra SavedVariables — ikke addonets programfiler eller AppHelper-filen.');
+ const db=readSavedVariables(source);if(!db?.characters||typeof db.characters!=='object'||!db.accountCharacters||typeof db.accountCharacters!=='object')throw Error('Vælg LejrbaletSync.lua eller FlockSync.lua fra SavedVariables — ikke addonets programfiler eller AppHelper-filen.');
  const result:FlockCharacter[]=[];
  for(const [guid,raw] of Object.entries<any>(db.characters)){
   if(!Object.hasOwn(db.accountCharacters,guid))continue;
@@ -28,6 +29,7 @@ export function parseFlockFile(source:string):FlockCharacter[]{
   if(new Set(skills.map((x:ProfessionSkill)=>x.name)).size!==skills.length)throw Error('Gentagne professions i scanningen.');
   if(skills.length)c.professionSkills=skills;
   const gear=readGear(raw.gear);if(gear)c.gear=gear;
+  const progress=progressSchema.parse({goldCopper:raw.goldCopper,xp:raw.xp,xpMax:raw.xpMax,location:raw.location,...(db.__root==='LejrbaletDB'?{source:'lejrbalet'}:{})});Object.assign(c,Object.fromEntries(Object.entries(progress).filter(([,v])=>v!==undefined)));
   result.push(c);if(result.length>250)throw Error('Filen indeholder for mange karakterer.');
  }
  if(!result.length)throw Error('Ingen af dine egne aktive karakterer blev fundet. Log ind med FlockSync, gennemfør introduktionen, scan og log ud. Guildkammeraters karakterer importeres ikke fra din fil.');

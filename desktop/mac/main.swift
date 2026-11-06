@@ -39,17 +39,20 @@ final class App: NSObject, NSApplicationDelegate, NSWindowDelegate {
     lazy var session: URLSession = { let c = URLSessionConfiguration.ephemeral; c.timeoutIntervalForRequest = 25; c.timeoutIntervalForResource = 60; return URLSession(configuration:c,delegate:NoRedirect(),delegateQueue:nil) }()
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        NSApp.appearance = NSAppearance(named:.darkAqua)
         if let data = try? Data(contentsOf:dataDir.appendingPathComponent("settings.json")), let s = try? JSONDecoder().decode(Settings.self,from:data) { settings = s }
-        if UserDefaults.standard.integer(forKey:"payloadVersion") < 3 { settings.uploaded = [:]; UserDefaults.standard.set(3,forKey:"payloadVersion") }
+        if UserDefaults.standard.integer(forKey:"payloadVersion") < 4 { settings.uploaded = [:]; UserDefaults.standard.set(4,forKey:"payloadVersion") }
         token = Keychain.read()
-        window = NSWindow(contentRect:NSRect(x:0,y:0,width:640,height:680),styleMask:[.titled,.closable,.miniaturizable],backing:.buffered,defer:false)
-        window.title = "Lejrbalet Sync · 0.3.0"; window.delegate = self; window.isReleasedWhenClosed = false; window.center()
+        window = NSWindow(contentRect:NSRect(x:0,y:0,width:640,height:740),styleMask:[.titled,.closable,.miniaturizable],backing:.buffered,defer:false)
+        window.title = "Lejrbalet Sync · 0.4.0"; window.delegate = self; window.isReleasedWhenClosed = false; window.center()
+        window.backgroundColor = NSColor(srgbRed:0.09,green:0.065,blue:0.045,alpha:1)
         let stack = NSStackView(); stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 14; stack.translatesAutoresizingMaskIntoConstraints = false
         window.contentView!.addSubview(stack)
         NSLayoutConstraint.activate([stack.leadingAnchor.constraint(equalTo:window.contentView!.leadingAnchor,constant:26),stack.trailingAnchor.constraint(equalTo:window.contentView!.trailingAnchor,constant:-26),stack.topAnchor.constraint(equalTo:window.contentView!.topAnchor,constant:24)])
+        if let image = NSImage(named:NSImage.Name("AppIcon")) ?? NSImage(contentsOfFile:Bundle.main.path(forResource:"AppIcon",ofType:"png") ?? "") { let emblem = NSImageView(image:image); emblem.widthAnchor.constraint(equalToConstant:56).isActive = true; emblem.heightAnchor.constraint(equalToConstant:56).isActive = true; stack.addArrangedSubview(emblem) }
         let title = NSTextField(labelWithString:"Dine karakterer. Din hub."); title.font = .boldSystemFont(ofSize:25); title.textColor = .systemOrange; stack.addArrangedSubview(title)
         func label(_ text: String) { let field = NSTextField(wrappingLabelWithString:text); stack.addArrangedSubview(field); field.widthAnchor.constraint(equalToConstant:580).isActive = true }
-        func button(_ title: String, _ selector: Selector) -> NSButton { NSButton(title:title,target:self,action:selector) }
+        func button(_ title: String, _ selector: Selector) -> NSButton { let b = NSButton(title:title,target:self,action:selector); b.bezelColor = .systemOrange; b.contentTintColor = .white; return b }
         label("1. Åbn guiden og opret din personlige forbindelsesnøgle.")
         stack.addArrangedSubview(button("Åbn opsætningsguiden",#selector(openGuide)))
         label("2. Indsæt forbindelsesnøglen fra hjemmesiden")
@@ -62,7 +65,7 @@ final class App: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let actions = NSStackView(views:[button("Gem og forbind",#selector(saveAndSync)),button("Synkronisér nu",#selector(forceSync)),button("Tilknyt karakterer",#selector(openImport))]); actions.spacing = 8; stack.addArrangedSubview(actions)
         status.font = .systemFont(ofSize:13); stack.addArrangedSubview(status); status.widthAnchor.constraint(equalToConstant:580).isActive = true
         label("Luk vinduet med den røde knap — appen synkroniserer videre i menulinjen. Vælg Afslut i menulinjen for at stoppe den helt.")
-        tray = NSStatusBar.system.statusItem(withLength:NSStatusItem.variableLength); tray.button?.image = NSImage(systemSymbolName:"flame.fill",accessibilityDescription:"Lejrbalet Sync")
+        tray = NSStatusBar.system.statusItem(withLength:NSStatusItem.variableLength); if let image = NSImage(contentsOfFile:Bundle.main.path(forResource:"TrayIcon",ofType:"png") ?? "") { image.size = NSSize(width:20,height:20); image.isTemplate = false; tray.button?.image = image }
         let menu = NSMenu()
         for (title, selector) in [("Åbn Lejrbalet Sync",#selector(reveal)),("Synkronisér nu",#selector(forceSync)),("Tilknyt nye karakterer",#selector(openImport)),("Afslut Lejrbalet Sync",#selector(quit))] { let item = NSMenuItem(title:title,action:selector,keyEquivalent:""); item.target = self; menu.addItem(item) }
         tray.menu = menu
@@ -119,7 +122,8 @@ final class App: NSObject, NSApplicationDelegate, NSWindowDelegate {
             let accounts = try FileManager.default.contentsOfDirectory(at:root,includingPropertiesForKeys:[.isDirectoryKey],options:.skipsHiddenFiles).filter { isDirectory($0.path) }.prefix(20)
             var found = false, sent = false, updated = 0, pending = 0
             for account in accounts {
-                let file = account.appendingPathComponent("SavedVariables/FlockSync.lua")
+                let ownFile = account.appendingPathComponent("SavedVariables/LejrbaletSync.lua")
+                let file = FileManager.default.fileExists(atPath:ownFile.path) ? ownFile : account.appendingPathComponent("SavedVariables/FlockSync.lua")
                 guard FileManager.default.fileExists(atPath:file.path) else { continue }; found = true
                 let attributes = try FileManager.default.attributesOfItem(atPath:file.path)
                 guard ((attributes[.size] as? NSNumber)?.intValue ?? Int.max) <= 5*1024*1024 else { report("En FlockSync-fil er større end 5 MB."); continue }
@@ -128,7 +132,7 @@ final class App: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 try await Task.sleep(nanoseconds:300_000_000)
                 guard data == (try Data(contentsOf:file)) else { report("WoW gemmer stadig. Prøver igen automatisk."); continue }
                 let chars = try await Task.detached(priority:.utility) { try FlockReader.read(data) }.value
-                if chars.isEmpty { report("Scan dine karakterer i FlockSync, og log ud."); continue }
+                if chars.isEmpty { report("Scan dine karakterer med /lejrbalet, og log ud."); continue }
                 for start in stride(from:0,to:chars.count,by:4) {
                     var req = URLRequest(url:URL(string:hub+"/api/sync/upload")!); req.httpMethod = "POST"; req.setValue("Bearer "+token,forHTTPHeaderField:"Authorization"); req.setValue("application/json",forHTTPHeaderField:"Content-Type"); req.httpBody = try JSONEncoder().encode(Payload(characters:Array(chars[start..<min(start+4,chars.count)])))
                     let (reply,response) = try await session.data(for:req)
@@ -139,7 +143,7 @@ final class App: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 }
                 settings.uploaded[file.path] = digest; try persist(); sent = true
             }
-            if !found { report("Venter på FlockSync.lua. Scan i WoW, og brug /reload eller log ud.") }
+            if !found { report("Venter på LejrbaletSync.lua. Scan med /lejrbalet, og brug /reload eller log ud.") }
             else if sent { report("Seneste sync: \(DateFormatter.localizedString(from:Date(),dateStyle:.short,timeStyle:.short)). \(updated) opdateret." + (pending > 0 ? " \(pending) afventer tilknytning på hubben." : " Alle kendte karakterer er behandlet.")) }
         } catch let e as FlockError { report(e.localizedDescription) }
         catch { report("Filen eller forbindelsen er utilgængelig. Prøver igen automatisk. Kontrollér WoW-mappen og internet.") }

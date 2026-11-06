@@ -27,6 +27,11 @@ export default function CharacterCard({entry,ownerName,expanded,onToggle,childre
     <span className="character-banner-owner">{ownerName}</span>
    </div>
    {entry.data.flockSync?.capturedAt&&<p className="small">Seneste scanning i spillet: <time dateTime={new Date(entry.data.flockSync.capturedAt*1000).toISOString()}>{new Date(entry.data.flockSync.capturedAt*1000).toLocaleString('da-DK',{timeZone:'Europe/Copenhagen'})}</time></p>}
+   <div className="character-journey-facts">
+    {entry.data.goldCopper!==undefined&&<div><small>Guld</small><strong><span className="coin-gold">{Math.floor(entry.data.goldCopper/10000).toLocaleString('da-DK')} g</span> · {Math.floor(entry.data.goldCopper%10000/100)} s · {entry.data.goldCopper%100} k</strong></div>}
+    {entry.data.xp!==undefined&&entry.data.xpMax>0&&<div><small>XP til næste level</small><strong>{entry.data.xp.toLocaleString('da-DK')} / {entry.data.xpMax.toLocaleString('da-DK')}</strong><progress aria-label="XP til næste level" max={entry.data.xpMax} value={entry.data.xp}/></div>}
+    {entry.data.location&&<div><small>Senest registrerede sted</small><strong>{[entry.data.location.zone,entry.data.location.subZone].filter(Boolean).join(' · ')||'Ukendt zone'}</strong>{entry.data.location.x!==undefined&&<span>{(entry.data.location.x*100).toFixed(1)}, {(entry.data.location.y*100).toFixed(1)}</span>}<time className="small" dateTime={new Date(entry.data.location.updatedAt*1000).toISOString()}>{new Date(entry.data.location.updatedAt*1000).toLocaleString('da-DK',{timeZone:'Europe/Copenhagen'})}</time></div>}
+   </div>
    {entry.body&&<p className="body-text">{entry.body}</p>}
    <dl><div><dt>Professions</dt><dd>{entry.data.professions?.length?<ProfessionLevels names={entry.data.professions} skills={entry.data.professionSkills}/>: 'Ikke valgt endnu'}</dd></div><div><dt>Sub-professions</dt><dd>{entry.data.subProfessions?.length?<ProfessionLevels names={entry.data.subProfessions} skills={entry.data.professionSkills}/>: 'Ikke valgt endnu'}</dd></div></dl>
    {expanded&&<CharacterArmory gear={entry.data.gear} name={entry.title} characterClass={entry.data.class||'Eventyrer'}/>}

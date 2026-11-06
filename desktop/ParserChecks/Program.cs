@@ -9,3 +9,7 @@ string armory=data.Replace("name=\"Alchemy\"","name=\"Alchemy\",level=150,maxLev
 var equipped=FlockReader.Read(armory).Single();if(equipped.gear?.items.Single().itemId!=19019||equipped.professionSkills?.Single().level!=150)throw new Exception("Gear or rank missing");
 foreach(var invalid in new[]{armory.Replace("slotId=16","slotId=20"),armory.Replace("itemId=19019","itemId=123")}){bool rejected=false;try{FlockReader.Read(invalid);}catch(FormatException){rejected=true;}if(!rejected)throw new Exception("Invalid equipment accepted");}
 Console.WriteLine("Gear and profession rank checks passed.");
+
+var own=FlockReader.Read(File.ReadAllText("tests/fixtures/lejrbalet.lua")).Single();if(own.goldCopper!=123456||own.xp!=250||own.location?.x!=0.52||own.source!="lejrbalet")throw new Exception("Original addon fields missing");
+var zero=FlockReader.Read(File.ReadAllText("tests/fixtures/lejrbalet.lua").Replace("[\"goldCopper\"]=123456","[\"goldCopper\"]=0")).Single();if(zero.goldCopper!=0)throw new Exception("Zero gold lost");
+Console.WriteLine("Original addon fixture passed: gold, zero gold, XP, position and source.");

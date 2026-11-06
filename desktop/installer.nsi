@@ -1,5 +1,7 @@
 Unicode True
 !include "MUI2.nsh"
+!define MUI_ICON "LejrbaletSync\AppIcon.ico"
+!define MUI_UNICON "LejrbaletSync\AppIcon.ico"
 Name "Lejrbalet Sync"
 OutFile "LejrbaletSync-Setup.exe"
 InstallDir "$LOCALAPPDATA\LejrbaletSync"
@@ -26,7 +28,7 @@ Section "Lejrbalet Sync"
  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "LejrbaletSync" '$"$INSTDIR\LejrbaletSync.exe$" --background'
  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\LejrbaletSync" "DisplayName" "Lejrbalet Sync"
  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\LejrbaletSync" "UninstallString" '$"$INSTDIR\Uninstall.exe$"'
- WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\LejrbaletSync" "DisplayVersion" "0.3.0"
+ WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\LejrbaletSync" "DisplayVersion" "0.4.0"
  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\LejrbaletSync" "NoModify" 1
  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\LejrbaletSync" "NoRepair" 1
 SectionEnd

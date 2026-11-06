@@ -1,6 +1,7 @@
 ## Interface: 16001
 ## Title: Lejrbalet Sync
 ## Notes: Dine karakterer ved bålet. Personlig sync til Lejrbalet.
+## IconTexture: Interface\AddOns\LejrbaletSync\Icon
 ## Author: Lejrbalet
 ## Version: 0.4.0
 ## SavedVariables: LejrbaletDB

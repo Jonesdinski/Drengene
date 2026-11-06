@@ -15,6 +15,8 @@ test('scoped devices queue new characters and only update approved own links; re
  const gear={updatedAt:c.capturedAt+1,items:[{slotId:16,itemId:19019,itemLink:'|cffff8000|Hitem:19019:0|h[Thunderfury]|h|r'}]};
  expect(await send(token,[{...c,level:20,capturedAt:c.capturedAt+1,gear,professionSkills:[{name:'Alchemy',level:150,maxLevel:225}]}])).toMatchObject({pending:0,updated:1});
  const entry:any=(await pg.query('SELECT * FROM lejrbalet.entries')).rows[0];expect(entry.owner).toBe('a');expect(JSON.parse(entry.data)).toMatchObject({level:20,role:'main',combatRole:'DPS',gear,professionSkills:[{name:'Alchemy',level:150,maxLevel:225}]});
+ await send(token,[{...c,level:20,capturedAt:c.capturedAt+2,goldCopper:0,xp:250,xpMax:1000,source:'lejrbalet',location:{zone:'Durotar',x:.52,y:.43,updatedAt:c.capturedAt+2}}]);
+ const enriched=JSON.parse(((await pg.query('SELECT data FROM lejrbalet.entries')).rows[0] as any).data);expect(enriched).toMatchObject({goldCopper:0,xp:250,xpMax:1000,location:{zone:'Durotar',x:.52},flockSync:{source:'lejrbalet'}});
  // Older clients omit optional armory fields: keep the last known gear and skills.
  await send(token,[{...c,level:20,capturedAt:c.capturedAt+3}]);
  let saved=JSON.parse(((await pg.query('SELECT data FROM lejrbalet.entries')).rows[0] as any).data);expect(saved.gear).toEqual(gear);expect(saved.professionSkills[0].level).toBe(150);

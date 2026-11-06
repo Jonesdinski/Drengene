@@ -18,6 +18,12 @@ import Foundation
     for bad in [armory.replacingOccurrences(of:"slotId=16",with:"slotId=20"),armory.replacingOccurrences(of:"itemId=19019",with:"itemId=123")] {
         var rejected = false; do { _ = try FlockReader.read(Data(bad.utf8)) } catch { rejected = true }; precondition(rejected)
     }
+    let ownText = try String(contentsOfFile:"tests/fixtures/lejrbalet.lua",encoding:.utf8)
+    let own = try FlockReader.read(Data(ownText.utf8))[0]
+    precondition(own.goldCopper == 123456 && own.xp == 250 && own.location?.x == 0.52 && own.source == "lejrbalet")
+    let zero = try FlockReader.read(Data(ownText.replacingOccurrences(of:"[\"goldCopper\"]=123456",with:"[\"goldCopper\"]=0").utf8))[0]
+    precondition(zero.goldCopper == 0)
+    print("Original addon fixture passed: gold, zero gold, XP, position and source.")
     print("Gear and profession rank checks passed.")
     print("Parser checks passed: own characters, Unicode, professions, executable Lua, truncation, level and depth rejection.")
  }

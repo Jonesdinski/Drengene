@@ -12,3 +12,5 @@ desktop/publish/
 desktop/*.exe
 
 desktop/mac/build/
+
+addon/*.zip
