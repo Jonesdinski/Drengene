@@ -13,7 +13,10 @@ export const gearSlots=[
  {id:16,name:'Hovedhånd',icon:'inv_sword_04'},{id:17,name:'Offhand',icon:'inv_shield_06'},{id:18,name:'Afstand / relic',icon:'inv_weapon_bow_07'}
 ];
 export function linkName(link:string){return /\|h\[([^\]\r\n]{1,200})\]\|h/.exec(link)?.[1];}
-export function linkColor(link:string){const hex=/^\|cff([0-9a-f]{6})/i.exec(link)?.[1];return hex?'#'+hex:'#d3c6b1';}
+export const qualityColors=['#9d9d9d','#ffffff','#1eff00','#0070dd','#a335ee','#ff8000','#e6cc80','#00ccff'];
+export const qualityNames=['Poor','Common','Uncommon','Rare','Epic','Legendary','Artifact','Heirloom'];
+export function itemQuality(link:string,fallback?:number){const hex=/\|c[0-9a-f]{2}([0-9a-f]{6})/i.exec(link)?.[1]?.toLowerCase();if(hex){const found=qualityColors.indexOf('#'+hex);return found>=0?found:undefined;}return Number.isInteger(fallback)&&fallback!>=0&&fallback!<qualityColors.length?fallback:undefined;}
+export function linkColor(link:string,quality?:number){const hex=/\|c[0-9a-f]{2}([0-9a-f]{6})/i.exec(link)?.[1];return hex?'#'+hex:qualityColors[quality??-1]||'#d3c6b1';}
 export function validItemLink(link:unknown,itemId:number):link is string{return typeof link==='string'&&link.length>0&&link.length<=512&&Number(/(?:\|H|^)item:(\d+)/.exec(link)?.[1])===itemId;}
 export function readGear(raw:any):GearSnapshot|undefined{
  if(raw==null)return;

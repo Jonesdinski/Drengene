@@ -9,7 +9,7 @@ export async function GET(req:Request){try{
  for(let i=0;i<ids.length;i+=4)await Promise.all(ids.slice(i,i+4).map(async id=>{try{
   const r=await fetch(`https://nether.wowhead.com/classic/tooltip/item/${id}`,{next:{revalidate:86400},signal:AbortSignal.timeout(3500)});if(!r.ok)return;const d=await r.json();
   if(typeof d.icon!=='string'||!/^[-a-zA-Z0-9_]{1,100}$/.test(d.icon)||typeof d.name!=='string')return;
-  items[id]={name:d.name.slice(0,200),icon:d.icon.toLowerCase(),text:typeof d.tooltip==='string'?tooltipText(d.tooltip):''};
+  items[id]={quality:Number.isInteger(d.quality)&&d.quality>=0&&d.quality<=7?d.quality:undefined,name:d.name.slice(0,200),icon:d.icon.toLowerCase(),text:typeof d.tooltip==='string'?tooltipText(d.tooltip):''};
  }catch{}}));
  return json({items});
  }catch(e){return failure(e);}}
