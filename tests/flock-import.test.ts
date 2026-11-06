@@ -20,3 +20,18 @@ test('import preserves existing choices, enforces owner and links, is idempotent
  await expect(run('a',[{...c,target:id,capturedAt:stamp+3}])).rejects.toThrow('IMPORT_OLDER');
  }finally{await pg.close();}
 });
+
+test('reads real equipped slots and skill ranks while rejecting duplicate slots and forged item links',()=>{
+ const armory=file.replace('name="Alchemy"','name="Alchemy",level=150,maxLevel=225').replace('name="Cooking"','name="Cooking",level=70,maxLevel=75').replace('lastSeenAt='+stamp,`lastSeenAt=${stamp},gear={updatedAt=${stamp},items={{slotId=16,itemId=19019,itemLink="|cffff8000|Hitem:19019:0:0:0|h[Thunderfury]|h|r"}}}`);
+ const c=parseFlockFile(armory)[0];expect(c.gear).toMatchObject({updatedAt:stamp,items:[{slotId:16,itemId:19019}]});expect(c.professionSkills).toEqual([{name:'Alchemy',level:150,maxLevel:225},{name:'Cooking',level:70,maxLevel:75}]);
+ expect(()=>parseFlockFile(armory.replace('slotId=16','slotId=20'))).toThrow();expect(()=>parseFlockFile(armory.replace('itemId=19019','itemId=123'))).toThrow();
+ const item='{slotId=16,itemId=19019,itemLink="item:19019"}';expect(()=>parseFlockFile(file.replace('lastSeenAt='+stamp,`lastSeenAt=${stamp},gear={updatedAt=${stamp},items={${item},${item}}}`))).toThrow();
+});
+
+test('gear snapshot schema rejects injection and invalid ranks; empty fresh snapshot can remove equipped gear',async()=>{
+ const {importSchema}=await import('../app/api/import/route');const base={guid,realm:'Realm',name:'Char',class:'Mage',level:20,capturedAt:stamp};
+ const gear={updatedAt:stamp,items:[{slotId:16,itemId:19019,itemLink:'|cffff8000|Hitem:19019:0|h[Thunderfury]|h|r'}]};
+ expect(importSchema.parse({characters:[{...base,gear,professionSkills:[{name:'Alchemy',level:150,maxLevel:225}]}]}).characters[0].gear?.items).toHaveLength(1);
+ for(const extra of [{gear:{...gear,items:[gear.items[0],gear.items[0]]}},{gear:{...gear,items:[{...gear.items[0],itemLink:'https://evil.test'}]}},{professionSkills:[{name:'Alchemy',level:226,maxLevel:225}]}])expect(()=>importSchema.parse({characters:[{...base,...extra}]})).toThrow();
+ expect(importSchema.parse({characters:[{...base,gear:{updatedAt:stamp,items:[]}}]}).characters[0].gear?.items).toEqual([]);
+});

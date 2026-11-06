@@ -1,0 +1,2 @@
+// Display-only Classic lookup. Never render remote tooltip HTML in the browser.
+export function tooltipText(html:string){return html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,'').replace(/<(?:br\s*\/?|\/tr|\/table)>/gi,'\n').replace(/<\/?(?:td|th)\b[^>]*>/gi,' ').replace(/<[^>]*>/g,'').replace(/<!--.*?-->/g,'').replace(/&(?:amp|quot|apos|lt|gt|nbsp);/g,s=>({'&amp;':'&','&quot;':'"','&apos;':"'",'&lt;':'<','&gt;':'>','&nbsp;':' '}[s]||s)).replace(/[ \t]+/g,' ').replace(/\n\s*\n/g,'\n').trim().slice(0,5000);}

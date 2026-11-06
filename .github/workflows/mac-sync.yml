@@ -20,8 +20,9 @@ jobs:
           swiftc -swift-version 5 desktop/mac/FlockReader.swift desktop/mac/ParserChecks.swift -o /tmp/parser-checks
           /tmp/parser-checks
   mac:
+    timeout-minutes: 10
     needs: parser
-    runs-on: macos-15
+    runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v4
       - name: Check parser, build universal app and test background lifecycle
@@ -34,5 +35,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view mac-sync-v0.2.0 >/dev/null 2>&1 || gh release create mac-sync-v0.2.0 --target '${{ github.sha }}' --title 'Lejrbalet Sync for Mac 0.2.0' --notes-file desktop/mac/README.md
-          gh release upload mac-sync-v0.2.0 desktop/mac/build/LejrbaletSync-Mac.dmg --clobber
+          gh release view mac-sync-v0.3.0 >/dev/null 2>&1 || gh release create mac-sync-v0.3.0 --target '${{ github.sha }}' --title 'Lejrbalet Sync for Mac 0.3.0' --notes-file desktop/mac/README.md
+          gh release upload mac-sync-v0.3.0 desktop/mac/build/LejrbaletSync-Mac.dmg --clobber

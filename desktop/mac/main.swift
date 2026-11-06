@@ -40,9 +40,10 @@ final class App: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         if let data = try? Data(contentsOf:dataDir.appendingPathComponent("settings.json")), let s = try? JSONDecoder().decode(Settings.self,from:data) { settings = s }
+        if UserDefaults.standard.integer(forKey:"payloadVersion") < 3 { settings.uploaded = [:]; UserDefaults.standard.set(3,forKey:"payloadVersion") }
         token = Keychain.read()
         window = NSWindow(contentRect:NSRect(x:0,y:0,width:640,height:680),styleMask:[.titled,.closable,.miniaturizable],backing:.buffered,defer:false)
-        window.title = "Lejrbalet Sync · 0.2.0"; window.delegate = self; window.isReleasedWhenClosed = false; window.center()
+        window.title = "Lejrbalet Sync · 0.3.0"; window.delegate = self; window.isReleasedWhenClosed = false; window.center()
         let stack = NSStackView(); stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 14; stack.translatesAutoresizingMaskIntoConstraints = false
         window.contentView!.addSubview(stack)
         NSLayoutConstraint.activate([stack.leadingAnchor.constraint(equalTo:window.contentView!.leadingAnchor,constant:26),stack.trailingAnchor.constraint(equalTo:window.contentView!.trailingAnchor,constant:-26),stack.topAnchor.constraint(equalTo:window.contentView!.topAnchor,constant:24)])
@@ -128,8 +129,8 @@ final class App: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 guard data == (try Data(contentsOf:file)) else { report("WoW gemmer stadig. Prøver igen automatisk."); continue }
                 let chars = try await Task.detached(priority:.utility) { try FlockReader.read(data) }.value
                 if chars.isEmpty { report("Scan dine karakterer i FlockSync, og log ud."); continue }
-                for start in stride(from:0,to:chars.count,by:25) {
-                    var req = URLRequest(url:URL(string:hub+"/api/sync/upload")!); req.httpMethod = "POST"; req.setValue("Bearer "+token,forHTTPHeaderField:"Authorization"); req.setValue("application/json",forHTTPHeaderField:"Content-Type"); req.httpBody = try JSONEncoder().encode(Payload(characters:Array(chars[start..<min(start+25,chars.count)])))
+                for start in stride(from:0,to:chars.count,by:4) {
+                    var req = URLRequest(url:URL(string:hub+"/api/sync/upload")!); req.httpMethod = "POST"; req.setValue("Bearer "+token,forHTTPHeaderField:"Authorization"); req.setValue("application/json",forHTTPHeaderField:"Content-Type"); req.httpBody = try JSONEncoder().encode(Payload(characters:Array(chars[start..<min(start+4,chars.count)])))
                     let (reply,response) = try await session.data(for:req)
                     guard let response = response as? HTTPURLResponse else { throw FlockError.invalid }
                     if response.statusCode == 401 { authBlocked = true; report("Forbindelsesnøglen er udløbet eller afbrudt. Opret en ny på /sync."); return }

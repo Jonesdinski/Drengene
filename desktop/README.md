@@ -13,7 +13,7 @@ Independent companion for our hub, reading FlockSync's local data. It contains n
 
 Close hides the window to the tray. Double-click the tray icon to reopen; Afslut exits for this session. Uncheck Start automatisk med Windows to disable future login startup. Uncheck Upload automatisk to pause uploads while leaving the app running. Windows Task Manager Startup can also disable startup. The registry login item runs only when your user signs into Windows, not before sign-in.
 
-No raw SavedVariables files, guild records, chat or gear are uploaded. Current supported fields: GUID, realm, name, class, level, timestamp, recognised English primary/secondary professions. Settings in %LOCALAPPDATA%\LejrbaletSyncData; upload credential protected for your Windows user. Revocation through /sync stops future server writes. Uninstall removes local settings/startup entry; revoke the device in the hub as well to invalidate the server credential.
+No raw SavedVariables files, guild records, or chat are uploaded. Current supported fields: GUID, realm, name, class, level, timestamp, recognised English primary/secondary professions and skill levels, equipped gear (slot, item ID and item link). Settings in %LOCALAPPDATA%\LejrbaletSyncData; upload credential protected for your Windows user. Revocation through /sync stops future server writes. Uninstall removes local settings/startup entry; revoke the device in the hub as well to invalidate the server credential.
 
 ## Build
 .NET 10 SDK. `dotnet run --project desktop/ParserChecks -c Release` checks the independent parser on any OS.

@@ -12,7 +12,21 @@ cp Info.plist 'build/Lejrbalet Sync.app/Contents/Info.plist'
 codesign --force --deep --sign - 'build/Lejrbalet Sync.app'
 codesign --verify --deep --strict 'build/Lejrbalet Sync.app'
 # Verify a real AppKit launch and close-to-background lifecycle without uploading data.
-'build/Lejrbalet Sync.app/Contents/MacOS/LejrbaletSync' --smoke-test
+"build/Lejrbalet Sync.app/Contents/MacOS/LejrbaletSync" --smoke-test >build/smoke.log 2>&1 &
+smoke_pid=$!
+for attempt in {1..30}; do
+  if ! kill -0 "$smoke_pid" 2>/dev/null; then break; fi
+  sleep 1
+done
+if kill -0 "$smoke_pid" 2>/dev/null; then
+  kill "$smoke_pid"
+  cat build/smoke.log
+  echo 'Background lifecycle test timed out'
+  exit 1
+fi
+wait "$smoke_pid"
+cat build/smoke.log
+grep -q 'Background lifecycle checks passed' build/smoke.log
 mkdir -p build/dmg
 cp -R 'build/Lejrbalet Sync.app' build/dmg/
 ln -s /Applications build/dmg/Programmer

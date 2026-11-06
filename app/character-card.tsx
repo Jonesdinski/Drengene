@@ -1,7 +1,8 @@
 'use client';
 import type {CSSProperties,ReactNode} from 'react';
 import {ChevronDown} from 'lucide-react';
-import WowIcon,{ProfessionList,roleIcons} from './wow-icon';
+import CharacterArmory,{ProfessionLevels} from './character-armory';
+import WowIcon,{roleIcons} from './wow-icon';
 import {classPresentation} from './character-class';
 import {characterColor} from '../lib/journey';
 
@@ -27,7 +28,8 @@ export default function CharacterCard({entry,ownerName,expanded,onToggle,childre
    </div>
    {entry.data.flockSync?.capturedAt&&<p className="small">Seneste scanning i spillet: <time dateTime={new Date(entry.data.flockSync.capturedAt*1000).toISOString()}>{new Date(entry.data.flockSync.capturedAt*1000).toLocaleString('da-DK',{timeZone:'Europe/Copenhagen'})}</time></p>}
    {entry.body&&<p className="body-text">{entry.body}</p>}
-   <dl><div><dt>Professions</dt><dd>{entry.data.professions?.length?<ProfessionList names={entry.data.professions}/>: 'Ikke valgt endnu'}</dd></div><div><dt>Sub-professions</dt><dd>{entry.data.subProfessions?.length?<ProfessionList names={entry.data.subProfessions}/>: 'Ikke valgt endnu'}</dd></div></dl>
+   <dl><div><dt>Professions</dt><dd>{entry.data.professions?.length?<ProfessionLevels names={entry.data.professions} skills={entry.data.professionSkills}/>: 'Ikke valgt endnu'}</dd></div><div><dt>Sub-professions</dt><dd>{entry.data.subProfessions?.length?<ProfessionLevels names={entry.data.subProfessions} skills={entry.data.professionSkills}/>: 'Ikke valgt endnu'}</dd></div></dl>
+   {expanded&&<CharacterArmory gear={entry.data.gear} name={entry.title} characterClass={entry.data.class||'Eventyrer'}/>}
    {children}
   </div>
  </article>;

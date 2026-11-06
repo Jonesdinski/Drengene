@@ -1,9 +1,13 @@
 import Foundation
 
+struct ProfessionSkill: Codable { let name: String; let level: Int; let maxLevel: Int }
+struct GearItem: Codable { let slotId: Int; let itemId: Int; let itemLink: String }
+struct GearSnapshot: Codable { let updatedAt: Int64; let items: [GearItem] }
 struct Character: Codable {
     let guid: String, realm: String, name: String, `class`: String
     let level: Int, capturedAt: Int64
     let professions: [String]?, subProfessions: [String]?
+    let professionSkills: [ProfessionSkill]?, gear: GearSnapshot?
 }
 enum FlockError: Error, LocalizedError {
     case invalid
@@ -109,7 +113,34 @@ final class FlockReader {
             let names = Set(map(map(r["professions"])["primary"]).values.map { text(map($0),"name") })
             let prim = names.intersection(primary).sorted(), sub = names.intersection(secondary).sorted()
             guard prim.count <= 2, result.count < 250 else { throw FlockError.invalid }
-            result.append(Character(guid:guid,realm:realm,name:name,class:cls,level:Int(level),capturedAt:captured,professions:prim.isEmpty ? nil : prim,subProfessions:sub.isEmpty ? nil : sub))
+            let skillRows = map(map(r["professions"])["primary"]).values.map { map($0) }
+            var skills: [ProfessionSkill] = []
+            for row in skillRows {
+                let n = text(row,"name"), maximum = number(row,"maxLevel")
+                guard primary.contains(n) || secondary.contains(n) else { continue }
+                guard case .number(let current) = row["level"], current >= 0, current.rounded() == current, maximum > 0, maximum <= 1000, current <= Double(maximum) else { continue }
+                guard !skills.contains(where: { $0.name == n }), skills.count < 5 else { throw FlockError.invalid }
+                skills.append(ProfessionSkill(name:n,level:Int(current),maxLevel:Int(maximum)))
+            }
+            var gear: GearSnapshot? = nil
+            if r["gear"] != nil, case .table(let g) = r["gear"] {
+                let updated = number(g,"updatedAt"), rows = map(g["items"])
+                if updated == 0 && rows.isEmpty {} else {
+                    guard updated > 0, updated <= Int64(Date().timeIntervalSince1970)+300, rows.count <= 19, case .table = g["items"] else { throw FlockError.invalid }
+                    var equipment: [GearItem] = []
+                    for v in rows.values {
+                        let row = map(v), link = text(map(v),"itemLink")
+                        let slot = number(row,"slotId"), id = number(row,"itemId")
+                        guard (1...19).contains(slot), (1...100000000).contains(id), !link.isEmpty, link.utf16.count <= 512, !equipment.contains(where: { $0.slotId == Int(slot) }) else { throw FlockError.invalid }
+                        let regex = try NSRegularExpression(pattern:"(?:\\|H|^)item:([0-9]+)")
+                        let ns = link as NSString
+                        guard let match = regex.firstMatch(in:link,range:NSRange(location:0,length:ns.length)), Int64(ns.substring(with:match.range(at:1))) == id else { throw FlockError.invalid }
+                        equipment.append(GearItem(slotId:Int(slot),itemId:Int(id),itemLink:link))
+                    }
+                    gear = GearSnapshot(updatedAt:updated,items:equipment)
+                }
+            }
+            result.append(Character(guid:guid,realm:realm,name:name,class:cls,level:Int(level),capturedAt:captured,professions:prim.isEmpty ? nil : prim,subProfessions:sub.isEmpty ? nil : sub,professionSkills:skills.isEmpty ? nil : skills,gear:gear))
         }
         return result
     }

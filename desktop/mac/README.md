@@ -1,4 +1,4 @@
-# Lejrbalet Sync til Mac 0.2.0
+# Lejrbalet Sync til Mac 0.3.0
 
 Til macOS 13 Ventura eller nyere, både Apple Silicon og Intel. Selvstændig app uden ekstra runtime.
 
@@ -10,7 +10,7 @@ Til macOS 13 Ventura eller nyere, både Apple Silicon og Intel. Selvstændig app
 
 Den røde luk-knap skjuler vinduet. Appen og sync fortsætter i menulinjen ved flammeikonet. Vælg Åbn for at hente vinduet frem eller Afslut Lejrbalet Sync for at stoppe helt. Ved slukning eller logout fra computeren stopper appen; den kan starte igen ved næste login. Deaktivér automatisk opstart før du sletter appen fra Programmer.
 
-Forbindelsesnøglen opbevares i macOS' nøglering. Almindelige indstillinger og fil-hashes gemmes i ~/Library/Application Support/LejrbaletSync. Kun egne karakterers udvalgte felter sendes til hubben over HTTPS. Ingen Lua-kode køres.
+Forbindelsesnøglen opbevares i macOS' nøglering. Almindelige indstillinger og fil-hashes gemmes i ~/Library/Application Support/LejrbaletSync. Kun egne karakterers udvalgte felter, udstyret gear og professionsniveauer sendes til hubben over HTTPS. Ingen Lua-kode køres.
 
 Dette er en testudgave uden udgiversignatur og Apple-notarisering (kun lokal ad hoc-signatur), ikke Apple Developer ID-signeret. macOS kan blokere åbning. Godkend kun den forventede download fra dette repository; Slå ikke Gatekeeper fra. Ved behov kan den konkrete app godkendes via Systemindstillinger → Anonymitet & sikkerhed. Organisationens politik kan forhindre dette.
 

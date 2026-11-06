@@ -1,3 +1,4 @@
+import {readGear,type GearSnapshot,type ProfessionSkill} from './armory';
 // Independent, data-only reader. Never evaluates Lua or loads addon code.
 export function readSavedVariables(source:string):any{
  if(source.length>5*1024*1024)throw Error('Filen er for stor (maks. 5 MB).');
@@ -8,7 +9,7 @@ export function readSavedVariables(source:string):any{
  const token=/^(true|false|nil)(?![A-Za-z0-9_])/.exec(source.slice(i));if(token){i+=token[0].length;return token[0]==='nil'?null:token[0]==='true';}const num=/^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/.exec(source.slice(i));if(num){i+=num[0].length;const n=Number(num[0]);if(!Number.isFinite(n))fail();return n;}return fail();}
  ws();if(source.slice(i,i+11)!=='FlockSyncDB')fail();i+=11;ws();if(source[i++]!=='=')fail();const db=value();ws();if(source[i]===';'){i++;ws();}if(i!==source.length)fail();return db;
 }
-export type FlockCharacter={guid:string;realm:string;name:string;class:string;level:number;capturedAt:number;professions?:string[];subProfessions?:string[]};
+export type FlockCharacter={guid:string;realm:string;name:string;class:string;level:number;capturedAt:number;professions?:string[];subProfessions?:string[];professionSkills?:ProfessionSkill[];gear?:GearSnapshot};
 const classes:Record<number,string>={1:'Warrior',2:'Paladin',3:'Hunter',4:'Rogue',5:'Priest',7:'Shaman',8:'Mage',9:'Warlock',11:'Druid'};
 const primary=new Set(['Alchemy','Blacksmithing','Enchanting','Engineering','Herbalism','Leatherworking','Mining','Skinning','Tailoring']);
 const secondary=new Set(['Cooking','Fishing','First Aid']);
@@ -23,6 +24,10 @@ export function parseFlockFile(source:string):FlockCharacter[]{
   const names=Array.isArray(raw.professions?.primary)?raw.professions.primary:Object.values(raw.professions?.primary||{});
   const ps=Array.from(new Set<string>(names.map((p:any)=>p?.name).filter((n:any)=>typeof n==='string')));
   const p=ps.filter(n=>primary.has(n)),s=ps.filter(n=>secondary.has(n));if(p.length>2)throw Error('Mere end to primære professions i eksporten. Kontrollér scanningen.');if(p.length)c.professions=p;if(s.length)c.subProfessions=s;
+  const skills=names.filter((x:any)=>x&&(primary.has(x.name)||secondary.has(x.name))&&Number.isInteger(x.level)&&Number.isInteger(x.maxLevel)&&x.level>=0&&x.maxLevel>0&&x.maxLevel<=1000&&x.level<=x.maxLevel).map((x:any)=>({name:x.name,level:x.level,maxLevel:x.maxLevel}));
+  if(new Set(skills.map((x:ProfessionSkill)=>x.name)).size!==skills.length)throw Error('Gentagne professions i scanningen.');
+  if(skills.length)c.professionSkills=skills;
+  const gear=readGear(raw.gear);if(gear)c.gear=gear;
   result.push(c);if(result.length>250)throw Error('Filen indeholder for mange karakterer.');
  }
  if(!result.length)throw Error('Ingen af dine egne aktive karakterer blev fundet. Log ind med FlockSync, gennemfør introduktionen, scan og log ud. Guildkammeraters karakterer importeres ikke fra din fil.');

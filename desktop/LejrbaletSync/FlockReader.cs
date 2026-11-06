@@ -1,7 +1,10 @@
 using System.Text;
 using System.Text.RegularExpressions;
 namespace LejrbaletSync;
-public record Character(string guid,string realm,string name,string @class,int level,long capturedAt,string[]? professions=null,string[]? subProfessions=null);
+public record ProfessionSkill(string name,int level,int maxLevel);
+public record GearItem(int slotId,int itemId,string itemLink);
+public record GearSnapshot(long updatedAt,GearItem[] items);
+public record Character(string guid,string realm,string name,string @class,int level,long capturedAt,string[]? professions=null,string[]? subProfessions=null,ProfessionSkill[]? professionSkills=null,GearSnapshot? gear=null);
 // Independent data parser: no Lua runtime, evaluation, scripts or addon code.
 public sealed class FlockReader {
  readonly string s;int i,nodes;
@@ -24,7 +27,12 @@ public sealed class FlockReader {
  var number=NumberRx.Match(s,i);if(number.Success){i+=number.Length;if(double.TryParse(number.Value,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out var n)&&double.IsFinite(n))return n;}throw Bad();}
  public static List<Character> Read(string source){if(source.Length>5*1024*1024)throw new FormatException("FlockSync.lua er større end 5 MB.");var p=new FlockReader(source);p.Space();if(!p.s.AsSpan(p.i).StartsWith("FlockSyncDB"))throw Bad();p.i+=11;p.Expect('=');var db=Map(p.Value());p.Space();if(p.i<p.s.Length&&p.s[p.i]==';'){p.i++;p.Space();}if(p.i!=p.s.Length)throw Bad();var own=Map(db.GetValueOrDefault("accountCharacters"));var chars=Map(db.GetValueOrDefault("characters"));if(!db.ContainsKey("accountCharacters")||!db.ContainsKey("characters"))throw Bad();var result=new List<Character>();
  foreach(var (guid,obj) in chars){if(!own.ContainsKey(guid))continue;var r=Map(obj);if(r.GetValueOrDefault("isActive") is false)continue;string name=Text(r,"name").Trim(),realm=Text(r,"realm").Trim();int level=(int)Number(r,"level");long captured=Number(r,"lastSeenAt");if(Text(r,"guid")!=guid||!Regex.IsMatch(guid,"^Player-[A-Za-z0-9-]{3,100}$")||name.Length is <1 or >120||realm.Length is <1 or >100||!Classes.TryGetValue((int)Number(r,"classId"),out var cls)||level is <1 or >60||captured<=0||captured>DateTimeOffset.UtcNow.ToUnixTimeSeconds()+300)throw Bad();
- var prof=Map(Map(r.GetValueOrDefault("professions")).GetValueOrDefault("primary")).Values.Select(x=>Text(Map(x),"name")).Distinct().ToArray();var prim=prof.Where(Primary.Contains).ToArray();var sub=prof.Where(Secondary.Contains).ToArray();if(prim.Length>2)throw Bad();result.Add(new(guid,realm,name,cls,level,captured,prim.Length>0?prim:null,sub.Length>0?sub:null));if(result.Count>250)throw Bad();}
+ var prof=Map(Map(r.GetValueOrDefault("professions")).GetValueOrDefault("primary")).Values.Select(x=>Text(Map(x),"name")).Distinct().ToArray();var prim=prof.Where(Primary.Contains).ToArray();var sub=prof.Where(Secondary.Contains).ToArray();if(prim.Length>2)throw Bad();
+ var skillRows=Map(Map(r.GetValueOrDefault("professions")).GetValueOrDefault("primary")).Values.Select(Map).Where(x=>Primary.Contains(Text(x,"name"))||Secondary.Contains(Text(x,"name"))).Where(x=>x.GetValueOrDefault("level") is double v&&v>=0&&v==Math.Truncate(v)&&Number(x,"maxLevel") is >0 and <=1000&&v<=Number(x,"maxLevel")).Select(x=>new ProfessionSkill(Text(x,"name"),(int)Number(x,"level"),(int)Number(x,"maxLevel"))).ToArray();
+ if(skillRows.Length>5||skillRows.Select(x=>x.name).Distinct().Count()!=skillRows.Length)throw Bad();
+ GearSnapshot? gear=null;
+ if(r.GetValueOrDefault("gear") is not null){var g=Map(r["gear"]);long updated=Number(g,"updatedAt");var itemRows=Map(g.GetValueOrDefault("items"));if(updated==0&&itemRows.Count==0){}else{if(updated<=0||updated>DateTimeOffset.UtcNow.ToUnixTimeSeconds()+300||itemRows.Count>19||g.GetValueOrDefault("items") is not Dictionary<string,object?>)throw Bad();var gearItems=new List<GearItem>();foreach(var objItem in itemRows.Values){var item=Map(objItem);long slot=Number(item,"slotId"),id=Number(item,"itemId");string link=Text(item,"itemLink");var match=Regex.Match(link,@"(?:\|H|^)item:(\d+)");if(slot is <1 or >19||id is <1 or >100000000||link.Length is <1 or >512||!match.Success||!long.TryParse(match.Groups[1].Value,out var linkId)||linkId!=id||gearItems.Any(x=>x.slotId==slot))throw Bad();gearItems.Add(new((int)slot,(int)id,link));}gear=new(updated,gearItems.ToArray());}}
+ result.Add(new(guid,realm,name,cls,level,captured,prim.Length>0?prim:null,sub.Length>0?sub:null,skillRows.Length>0?skillRows:null,gear));if(result.Count>250)throw Bad();}
  return result;
  }
 }

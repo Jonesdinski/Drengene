@@ -12,8 +12,18 @@ test('scoped devices queue new characters and only update approved own links; re
  const send=(t:string,chars:any[])=>pg.transaction(tx=>receiveSync(exec(tx),t,{characters:chars}));
  expect(await send(token,[c])).toMatchObject({pending:1,updated:0});expect((await pg.query('SELECT * FROM lejrbalet.entries')).rows).toHaveLength(0);
  await pg.transaction(tx=>applyImport(exec(tx),'a',[{...c,role:'main',combatRole:'DPS'}]));
- expect(await send(token,[{...c,level:20,capturedAt:c.capturedAt+1}])).toMatchObject({pending:0,updated:1});
- const entry:any=(await pg.query('SELECT * FROM lejrbalet.entries')).rows[0];expect(entry.owner).toBe('a');expect(JSON.parse(entry.data)).toMatchObject({level:20,role:'main',combatRole:'DPS'});
+ const gear={updatedAt:c.capturedAt+1,items:[{slotId:16,itemId:19019,itemLink:'|cffff8000|Hitem:19019:0|h[Thunderfury]|h|r'}]};
+ expect(await send(token,[{...c,level:20,capturedAt:c.capturedAt+1,gear,professionSkills:[{name:'Alchemy',level:150,maxLevel:225}]}])).toMatchObject({pending:0,updated:1});
+ const entry:any=(await pg.query('SELECT * FROM lejrbalet.entries')).rows[0];expect(entry.owner).toBe('a');expect(JSON.parse(entry.data)).toMatchObject({level:20,role:'main',combatRole:'DPS',gear,professionSkills:[{name:'Alchemy',level:150,maxLevel:225}]});
+ // Older clients omit optional armory fields: keep the last known gear and skills.
+ await send(token,[{...c,level:20,capturedAt:c.capturedAt+3}]);
+ let saved=JSON.parse(((await pg.query('SELECT data FROM lejrbalet.entries')).rows[0] as any).data);expect(saved.gear).toEqual(gear);expect(saved.professionSkills[0].level).toBe(150);
+ // A newer character scan cannot replace a newer gear snapshot with an old one.
+ await send(token,[{...c,level:20,capturedAt:c.capturedAt+4,gear:{updatedAt:c.capturedAt,items:[]}}]);
+ saved=JSON.parse(((await pg.query('SELECT data FROM lejrbalet.entries')).rows[0] as any).data);expect(saved.gear.items).toHaveLength(1);
+ // Explicit empty equipment from a newer scan records an unequip.
+ await send(token,[{...c,level:20,capturedAt:c.capturedAt+5,gear:{updatedAt:c.capturedAt+5,items:[]}}]);
+ saved=JSON.parse(((await pg.query('SELECT data FROM lejrbalet.entries')).rows[0] as any).data);expect(saved.gear.items).toEqual([]);
  expect(await send(token,[{...c,level:5,capturedAt:c.capturedAt+2}])).toMatchObject({skipped:1,updated:0});
  await expect(send(token,[{...c,target:entry.id}])).rejects.toThrow('403');
  await expect(send(token,[c,c])).rejects.toThrow('SYNC_DUPLICATE');
