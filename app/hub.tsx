@@ -1,7 +1,7 @@
 'use client';
 import {readApiResponse,validateImageSize} from '../lib/http';
 import JourneyMap from './journey-map';
-import {SyncStatus,Locations,Postcard} from './hub-companion';
+import {SyncStatus} from './hub-companion';
 import CharacterCard from './character-card';
 import ActivityFeed from './activity-feed';
 import WowIcon,{menuIcons,kindIcons,ProfessionList} from './wow-icon';
@@ -60,7 +60,6 @@ return <><div className="ambient"/><div className="shell hub-dashboard"><header>
 {tab==='Overblik'&&<div className="dashboard-intro"><div><span className="eyebrow">VELKOMMEN TILBAGE VED BÅLET</span><h2>Dit næste eventyr starter her<span>.</span></h2></div><div className="dashboard-intro-actions"><a className="button secondary sync-guide-button" href="/sync"><RefreshCw size={15}/>Automatisk karakter-sync</a><button aria-label="Tilføj karakter" onClick={()=>open('character')}><Plus size={16}/><span>Tilføj karakter</span></button></div></div>}
 {tab==='Overblik'&&<JourneyMap characters={data.entries.filter((e:any)=>e.kind==='character')} players={data.players} loading={loading} meId={me?.id} onProgress={action}/>}
 {tab==='Overblik'&&signedIn&&<><SyncStatus characters={data.entries.filter((e:any)=>e.kind==='character'&&e.owner===me?.id)} refresh={refresh}/><section className="panel companion-panel"><h3>Mine karakterer</h3><Records kind="character" ownerId={me?.id}/>{!data.entries.some((e:any)=>e.kind==='character'&&e.owner===me?.id)&&<a href="/sync">Forbind dine karakterer</a>}</section></>}
-{tab==='Overblik'&&signedIn&&<><Locations characters={data.entries.filter((e:any)=>e.kind==='character')}/><Postcard/></>}
 {!signedIn&&<div className="login-banner"><span>Log ind for at åbne jeres fælles lejr.</span><a href={signIn} target="_top">Log ind med Discord ↗</a><span className="small">Dit spillernavn vælger du selv.</span></div>}
 {error&&<div role="alert" className="alert">{error}<button onClick={()=>{setError('');refresh()}} aria-label="Prøv igen"><RefreshCw size={15}/></button></div>}{notice&&<div role="status" className="toast">{notice}</div>}{deleted&&<div className="alert">Opslaget er arkiveret.<button onClick={async()=>{await action({op:'restore',id:deleted});setDeleted(null)}}>Fortryd</button><button className="icon-btn" onClick={()=>setDeleted(null)} aria-label="Luk"><X size={14}/></button></div>}
 {loading?<div className="loading"><Flame/>Vi gør plads ved bålet…</div>:<main>
