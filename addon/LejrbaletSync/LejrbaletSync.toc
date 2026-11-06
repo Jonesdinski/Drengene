@@ -1,0 +1,7 @@
+## Interface: 16001
+## Title: Lejrbalet Sync
+## Notes: Dine karakterer ved bålet. Personlig sync til Lejrbalet.
+## Author: Lejrbalet
+## Version: 0.4.0
+## SavedVariables: LejrbaletDB
+Main.lua
