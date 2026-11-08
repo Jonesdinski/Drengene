@@ -8,15 +8,17 @@ local function safe(fn,...)
 end
 local professions={[171]='Alchemy',[164]='Blacksmithing',[333]='Enchanting',[202]='Engineering',[182]='Herbalism',[165]='Leatherworking',[186]='Mining',[393]='Skinning',[197]='Tailoring',[185]='Cooking',[356]='Fishing',[129]='First Aid'}
 local function number(v) if type(v)=='number' and not (issecretvalue and issecretvalue(v)) and v==v and v>=0 and v<math.huge then return v end end
-local function scan(preserveGear)
+local function scan(preserveGear,levelHint)
  if not LejrbaletDB then return end
  local guid=safe(UnitGUID,'player')
  if not guid then return end
  local _,_,classId=UnitClass('player')
- local playerName=safe(UnitName,'player');local realm=safe(GetRealmName);local level=number(safe(UnitLevel,'player'))
+ local old=LejrbaletDB.characters[guid] or {}
+ local playerName=safe(UnitName,'player');local realm=safe(GetRealmName)
+ -- PLAYER_LEVEL_UP may fire before UnitLevel catches up. Never lose a confirmed level.
+ local level=math.max(number(safe(UnitLevel,'player')) or 0,number(levelHint) or 0,number(old.level) or 0)
  if not playerName or not realm or not classId or not level or level<1 then return end
  local now=GetServerTime()
- local old=LejrbaletDB.characters[guid] or {}
  local c={guid=guid,name=playerName,realm=realm,classId=classId,level=level,lastSeenAt=now,isActive=true,professions=old.professions}
  c.goldCopper=number(safe(GetMoney)) or old.goldCopper
  c.xp=number(safe(UnitXP,'player')) or old.xp; c.xpMax=number(safe(UnitXPMax,'player')) or old.xpMax
@@ -76,6 +78,9 @@ frame:SetScript('OnEvent',function(_,event,name,hasItem)
   LejrbaletDB=LejrbaletDB or {characters={},accountCharacters={}}
   LejrbaletDB.schemaVersion=1
   LejrbaletDB.characters=LejrbaletDB.characters or {};LejrbaletDB.accountCharacters=LejrbaletDB.accountCharacters or {}
+ elseif event=='PLAYER_LEVEL_UP' then
+  scan(false,name)
+  C_Timer.After(1,function() scan() end)
  elseif event=='PLAYER_LOGOUT' then scan(true)
  else
   if event=='PLAYER_EQUIPMENT_CHANGED' and type(name)=='number' and name>=1 and name<=19 then

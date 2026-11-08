@@ -15,10 +15,10 @@ export async function receiveSync(tx:any,token:string,raw:any){
  if(count+characters.filter(c=>!existing.some((e:any)=>e.guid===c.guid&&e.realm===c.realm)).length>250)throw Error('SYNC_LIMIT');
  const linked=[];let pending=0,skipped=0;
  for(const c of characters){
-  await tx.unsafe('INSERT INTO lejrbalet.sync_inbox(owner,guid,realm,payload,captured_at) VALUES($1,$2,$3,$4,$5) ON CONFLICT(owner,guid,realm) DO UPDATE SET payload=excluded.payload,captured_at=excluded.captured_at,received_at=now() WHERE excluded.captured_at>lejrbalet.sync_inbox.captured_at',[device.owner,c.guid,c.realm,JSON.stringify(c),c.capturedAt]);
+  await tx.unsafe("INSERT INTO lejrbalet.sync_inbox(owner,guid,realm,payload,captured_at) VALUES($1,$2,$3,$4,$5) ON CONFLICT(owner,guid,realm) DO UPDATE SET payload=excluded.payload,captured_at=excluded.captured_at,received_at=now() WHERE excluded.captured_at>lejrbalet.sync_inbox.captured_at OR (excluded.captured_at=lejrbalet.sync_inbox.captured_at AND (excluded.payload::jsonb->>'level')::int>(lejrbalet.sync_inbox.payload::jsonb->>'level')::int)",[device.owner,c.guid,c.realm,JSON.stringify(c),c.capturedAt]);
   const entry=entries.find((e:any)=>{const d=JSON.parse(e.data);return d.flockSync?.guid===c.guid&&d.flockSync?.realm===c.realm;});
   if(!entry){pending++;continue;}
-  const old=JSON.parse(entry.data);if(c.level<(old.level||1)||c.capturedAt<=old.flockSync.capturedAt){skipped++;continue;}linked.push({...c,target:entry.id});
+  const old=JSON.parse(entry.data);if(c.level<(old.level||1)||(c.capturedAt<old.flockSync.capturedAt||(c.capturedAt===old.flockSync.capturedAt&&c.level<=(old.level||1)))){skipped++;continue;}linked.push({...c,target:entry.id});
  }
  const result=linked.length?await applyImport(tx,device.owner,linked):{created:0,updated:0,unchanged:0};
  await tx.unsafe('UPDATE lejrbalet.sync_devices SET last_seen=now() WHERE id=$1',[device.id]);

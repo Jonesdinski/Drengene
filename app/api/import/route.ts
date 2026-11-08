@@ -20,7 +20,7 @@ export async function applyImport(tx:any,owner:string,characters:z.infer<typeof 
   const old=entry?JSON.parse(entry.data):{};
   if(old.flockSync&&(old.flockSync.guid!==c.guid||old.flockSync.realm!==c.realm))throw Error('IMPORT_LINKED');
   if(entry&&(old.level||1)>c.level)throw Error('IMPORT_OLDER');
-  if(old.flockSync?.capturedAt>=c.capturedAt){unchanged++;continue;}
+  if(old.flockSync&&(old.flockSync.capturedAt>c.capturedAt||(old.flockSync.capturedAt===c.capturedAt&&c.level<=(old.level||1)))){unchanged++;continue;}
   if(!entry&&(!c.role||!c.combatRole))throw Error('IMPORT_ROLE');
   const now=new Date().toISOString();const d=journeyProgress(old,{...old,class:c.class,level:c.level,...(!entry?{role:c.role,combatRole:c.combatRole}:{}),...(c.professions?.length?{professions:Array.from(new Set(c.professions))}:{}),...(c.subProfessions?.length?{subProfessions:Array.from(new Set(c.subProfessions))}:{}),...(c.professionSkills?.length?{professionSkills:[...(old.professionSkills||[]).filter((s:any)=>!c.professionSkills!.some(n=>n.name===s.name)),...c.professionSkills]}:{}),...(c.gear&&(!old.gear||c.gear.updatedAt>old.gear.updatedAt)?{gear:c.gear}:{}),...(c.goldCopper!==undefined?{goldCopper:c.goldCopper}:{}),...(c.xp!==undefined?{xp:c.xp}:{}),...(c.xpMax!==undefined?{xpMax:c.xpMax}:{}),...(c.location&&(!old.location||c.location.updatedAt>old.location.updatedAt)?{location:c.location}:{}),flockSync:{source:c.source||old.flockSync?.source||'flocksync',guid:c.guid,realm:c.realm,capturedAt:c.capturedAt,importedAt:now}},now);
   const id=entry?.id||crypto.randomUUID();

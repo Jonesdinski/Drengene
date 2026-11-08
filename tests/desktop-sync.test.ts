@@ -27,6 +27,13 @@ test('scoped devices queue new characters and only update approved own links; re
  await send(token,[{...c,level:20,capturedAt:c.capturedAt+5,gear:{updatedAt:c.capturedAt+5,items:[]}}]);
  saved=JSON.parse(((await pg.query('SELECT data FROM lejrbalet.entries')).rows[0] as any).data);expect(saved.gear.items).toEqual([]);
  expect(await send(token,[{...c,level:5,capturedAt:c.capturedAt+2}])).toMatchObject({skipped:1,updated:0});
+ // Different scans can share the same server second: accept a level increase once.
+ expect(await send(token,[{...c,level:21,capturedAt:c.capturedAt+5}])).toMatchObject({updated:1});
+ expect(await send(token,[{...c,level:21,capturedAt:c.capturedAt+5}])).toMatchObject({skipped:1,updated:0});
+ expect(await send(token,[{...c,level:22,capturedAt:c.capturedAt+4}])).toMatchObject({skipped:1,updated:0});
+ saved=JSON.parse(((await pg.query('SELECT data FROM lejrbalet.entries')).rows[0] as any).data);expect(saved.level).toBe(21);
+ expect((await pg.query("SELECT * FROM lejrbalet.journal WHERE message='Char nåede level 21'")).rows).toHaveLength(1);
+ expect(JSON.parse(((await pg.query('SELECT payload FROM lejrbalet.sync_inbox')).rows[0] as any).payload).level).toBe(21);
  await expect(send(token,[{...c,target:entry.id}])).rejects.toThrow('403');
  await expect(send(token,[c,c])).rejects.toThrow('SYNC_DUPLICATE');
  await expect(send('ljbs1_'+'b'.repeat(64),[c])).rejects.toThrow('401');

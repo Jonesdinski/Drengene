@@ -33,3 +33,13 @@ callback(nil,'PLAYER_EQUIPMENT_CHANGED',16,false);assert(#LejrbaletDB.characters
 C_Map.GetPlayerMapPosition=function()return nil end
 callback(nil,'ZONE_CHANGED');queued();assert(LejrbaletDB.characters['Player-123-ABC'].location.x==nil,'unknown position must not fabricate coordinates')
 print('Addon capture checks passed: gold, XP, coordinates, localized professions, gear, logout preservation and explicit unequip.')
+
+-- A level-up event can arrive while UnitLevel still reports the old value.
+callback(nil,'PLAYER_LEVEL_UP',21)
+assert(LejrbaletDB.characters['Player-123-ABC'].level==21,'level event must be captured immediately')
+callback(nil,'PLAYER_LOGOUT')
+assert(LejrbaletDB.characters['Player-123-ABC'].level==21,'logout must not regress a confirmed level')
+UnitLevel=function() return 0 end
+callback(nil,'PLAYER_LOGOUT')
+assert(LejrbaletDB.characters['Player-123-ABC'].level==21,'unavailable UnitLevel must preserve last level')
+print('Level-up race and logout level preservation checks passed.')

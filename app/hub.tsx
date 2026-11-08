@@ -18,7 +18,7 @@ const [expandedCharacters,setExpandedCharacters]=useState<string[]>([]);
 const me=data.me;
 const initialized=useRef(false);
 async function refresh(){if(!signedIn)return;try{const r=await fetch('/api/hub',{cache:'no-store'}),d:any=await readApiResponse(r);setData(d);if(!initialized.current){const last=d.entries.find((e:any)=>e.kind==='wheel');if(last?.data?.options)setWheel(last.data.options.join('\n'));initialized.current=true;}setError('');}catch(e:any){setError(e.message);}finally{setLoading(false);}}
-useEffect(()=>{refresh();const id=setInterval(()=>{if(!document.hidden)refresh()},30000);return()=>clearInterval(id)},[]);
+useEffect(()=>{refresh();const visible=()=>{if(!document.hidden)refresh()};const id=setInterval(visible,15000);document.addEventListener('visibilitychange',visible);window.addEventListener('focus',visible);return()=>{clearInterval(id);document.removeEventListener('visibilitychange',visible);window.removeEventListener('focus',visible)}},[]);
 useEffect(()=>{if(!modal)return;const f=(e:KeyboardEvent)=>{if(e.key==='Escape'){setModal(null);setToken('')}};document.addEventListener('keydown',f);return()=>document.removeEventListener('keydown',f)},[modal]);
 async function api(payload:any){const r=await fetch('/api/hub',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const d:any=await readApiResponse(r);return d;}
 async function action(payload:any){if(!signedIn){window.location.href=signIn;return;}try{await api(payload);await refresh();return true;}catch(e:any){setError(e.message);return false;}}
@@ -64,6 +64,7 @@ return <><div className="ambient"/><div className="shell hub-dashboard"><header>
 {error&&<div role="alert" className="alert">{error}<button onClick={()=>{setError('');refresh()}} aria-label="Prøv igen"><RefreshCw size={15}/></button></div>}{notice&&<div role="status" className="toast">{notice}</div>}{deleted&&<div className="alert">Opslaget er arkiveret.<button onClick={async()=>{await action({op:'restore',id:deleted});setDeleted(null)}}>Fortryd</button><button className="icon-btn" onClick={()=>setDeleted(null)} aria-label="Luk"><X size={14}/></button></div>}
 {loading?<div className="loading"><Flame/>Vi gør plads ved bålet…</div>:<main>
 {tab==='Overblik'&&<>
+<section className="homepage-party" aria-label="Partyets karakterer"><div className="section-title"><div><span className="eyebrow">VED DET SAMME BÅL</span><h2>Vores party</h2></div><button className="text-btn" onClick={()=>setTab('Vores party')}>Se alle spillerkort <ArrowUpRight size={14}/></button></div><div className="column"><Characters role="main"/><Characters role="alt"/></div></section>
 <section className="hub-launchpad" aria-label="Genveje i hubben">
 {[['Afstemninger','Hvad siger partyet?',`${list('poll').length} afstemninger · Giv din stemme`,'inv_misc_note_01'],['Hjulet','Lad hjulet bestemme','Vælg et emne, og træk en vinder','inv_misc_dice_01'],['Screenshot-galleriet','Øjeblikke fra eventyret',`${list('screenshot').length} screenshots · Se og del billeder`,'inv_misc_map_01']].map(([target,title,description,icon])=><button key={target} className="hub-shortcut" onClick={()=>{setTab(target);setSearch('')}}><WowIcon name={icon} size={38}/><span><small>{target}</small><strong>{title}</strong><span>{description}</span></span><ChevronRight size={18}/></button>)}
 </section>

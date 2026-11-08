@@ -25,5 +25,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view addon-v0.4.0 >/dev/null 2>&1 || gh release create addon-v0.4.0 --target '${{ github.sha }}' --title 'Lejrbalet Sync Addon 0.4.0' --notes-file addon/README.md
-          gh release upload addon-v0.4.0 addon/LejrbaletSync-Addon.zip --clobber
+          gh release view addon-v0.4.1 >/dev/null 2>&1 || gh release create addon-v0.4.1 --target '${{ github.sha }}' --title 'Lejrbalet Sync Addon 0.4.1' --notes-file addon/README.md
+          gh release upload addon-v0.4.1 addon/LejrbaletSync-Addon.zip --clobber
