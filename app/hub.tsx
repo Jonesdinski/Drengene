@@ -1,6 +1,7 @@
 'use client';
 import {readApiResponse,validateImageSize} from '../lib/http';
 import JourneyMap from './journey-map';
+import {useChallenges,ChallengeLeaderboard,ChallengeBoard} from './daily-challenges';
 import {SyncStatus} from './hub-companion';
 import CharacterCard from './character-card';
 import ActivityFeed from './activity-feed';
@@ -16,6 +17,7 @@ const [data,setData]=useState<any>(emptyData),[tab,setTab]=useState(initialTab),
 const [editing,setEditing]=useState<any>(null);
 const [expandedCharacters,setExpandedCharacters]=useState<string[]>([]);
 const me=data.me;
+const challenges=useChallenges(signedIn);
 const initialized=useRef(false);
 async function refresh(){if(!signedIn)return;try{const r=await fetch('/api/hub',{cache:'no-store'}),d:any=await readApiResponse(r);setData(d);if(!initialized.current){const last=d.entries.find((e:any)=>e.kind==='wheel');if(last?.data?.options)setWheel(last.data.options.join('\n'));initialized.current=true;}setError('');}catch(e:any){setError(e.message);}finally{setLoading(false);}}
 useEffect(()=>{refresh();const visible=()=>{if(!document.hidden)refresh()};const id=setInterval(visible,15000);document.addEventListener('visibilitychange',visible);window.addEventListener('focus',visible);return()=>{clearInterval(id);document.removeEventListener('visibilitychange',visible);window.removeEventListener('focus',visible)}},[]);
@@ -57,6 +59,7 @@ function Players(){return <><div className="section-title"><div><span className=
 function Avatar({p}:any){return p?.avatar?<img className="avatar" src={'/api/media/'+p.avatar} alt=""/>:<span className="avatar">{(p?.name||'L').slice(0,1).toUpperCase()}</span>}
 return <><div className="ambient"/><div className="shell hub-dashboard"><header><a href="/" className="brand"><WowIcon name="inv_misc_rune_01" size={36}/><span>Den Pisseklamme Gaming-Hub<small>WOW FOREVER · VORES FÆLLES REJSE</small></span></a><div className="account">{signedIn?<><a className="profile-button" href="/profil"><Avatar p={me}/><span>{me?.name||'Min profil'}</span></a><a className="icon-btn" href={signOut} target="_top" aria-label="Log ud"><LogOut size={17}/></a></>:<a className="button" href={signIn} target="_top">Log ind med Discord <ArrowUpRight size={14}/></a>}</div></header>
 <nav aria-label="Hovedmenu"><a className="sidebar-brand" href="/"><WowIcon name="inv_misc_rune_01" size={34}/><span>LEJRBALET<small>GAMING HUB</small></span></a><span className="sidebar-label">DIT PARTY. DIT EVENTYR.</span>{[['Overblik',Compass],['Afstemninger',Flag],['Hjulet',Dices],['Vores party',Users],['Screenshot-galleriet',ImageIcon],['WANTED',Swords],['Kroen',MessageCircle],['Mere',Plus]].map(([name,Icon]:any)=><button key={name} className={tab===name?'active':''} aria-current={tab===name?'page':undefined} onClick={()=>{setTab(name);setSearch('')}}><WowIcon name={menuIcons[name]} size={31}/><span>{name}</span></button>)}<div className="sidebar-bottom"><span className="sidebar-live"/>WoW Forever<small>Vejen til level 60</small><button onClick={()=>open('settings')}><Settings size={16}/>Indstillinger</button></div></nav>
+{tab==='Overblik'&&signedIn&&<ChallengeLeaderboard data={challenges.data} meId={me?.id}/>}
 {tab==='Overblik'&&<div className="dashboard-intro"><div><span className="eyebrow">VELKOMMEN TILBAGE VED BÅLET</span><h2>Dit næste eventyr starter her<span>.</span></h2></div><div className="dashboard-intro-actions"><a className="button secondary sync-guide-button" href="/sync"><RefreshCw size={15}/>Automatisk karakter-sync</a><button aria-label="Tilføj karakter" onClick={()=>open('character')}><Plus size={16}/><span>Tilføj karakter</span></button></div></div>}
 {tab==='Overblik'&&<JourneyMap characters={data.entries.filter((e:any)=>e.kind==='character')} players={data.players} loading={loading} meId={me?.id} onProgress={action}/>}
 
@@ -65,6 +68,7 @@ return <><div className="ambient"/><div className="shell hub-dashboard"><header>
 {loading?<div className="loading"><Flame/>Vi gør plads ved bålet…</div>:<main>
 {tab==='Overblik'&&<>
 <section className="homepage-party" aria-label="Partyets karakterer"><div className="section-title"><div><span className="eyebrow">VED DET SAMME BÅL</span><h2>Vores party</h2></div><button className="text-btn" onClick={()=>setTab('Vores party')}>Se alle spillerkort <ArrowUpRight size={14}/></button></div><div className="column"><Characters role="main"/><Characters role="alt"/></div></section>
+{signedIn&&<ChallengeBoard state={challenges} onComplete={refresh} onGallery={()=>setTab('Screenshot-galleriet')}/>}
 <section className="hub-launchpad" aria-label="Genveje i hubben">
 {[['Afstemninger','Hvad siger partyet?',`${list('poll').length} afstemninger · Giv din stemme`,'inv_misc_note_01'],['Hjulet','Lad hjulet bestemme','Vælg et emne, og træk en vinder','inv_misc_dice_01'],['Screenshot-galleriet','Øjeblikke fra eventyret',`${list('screenshot').length} screenshots · Se og del billeder`,'inv_misc_map_01']].map(([target,title,description,icon])=><button key={target} className="hub-shortcut" onClick={()=>{setTab(target);setSearch('')}}><WowIcon name={icon} size={38}/><span><small>{target}</small><strong>{title}</strong><span>{description}</span></span><ChevronRight size={18}/></button>)}
 </section>
