@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto';
 import {z} from 'zod';
+import {MAX_IMAGE_BYTES} from '../../../lib/image-limits';
 import {identity,origin,json,failure,database} from '../../server';
 import {connection} from '../../../lib/database';
 import {storage} from '../../../lib/supabase/storage';
@@ -15,7 +16,7 @@ export async function POST(req:Request){try{
  const c=await database().prepare('SELECT id FROM lejrbalet.daily_challenges WHERE id=? AND owner=?').bind(d.id,p.id).first();if(!c)throw Error('404');
  const u=await database().prepare('SELECT id FROM uploads WHERE id=? AND owner=?').bind(d.uploadId,p.id).first();if(!u)throw Error('403');
  const {data,error}=await storage().download(d.uploadId);if(error||!data)throw Error('404');
- if(data.size>4*1024*1024)return json({error:'Billedet må højst fylde 4 MB.'},400);
+ if(data.size>MAX_IMAGE_BYTES)return json({error:'Billedet må højst fylde 25 MB.'},400);
  const digest=createHash('sha256').update(new Uint8Array(await data.arrayBuffer())).digest('hex');
  return json(await connection().begin(tx=>completeChallenge(tx,p.id,d.id,d.uploadId,digest,new Date(),d.story)));
  }catch(e:any){if(e instanceof SyntaxError)return json({error:'Ugyldig forespørgsel.'},400);const messages:Record<string,string>={CHALLENGE_NO_MATCH:'Opgaven passer ikke længere til dine karakterer. Opdatér siden for en ny opgave uden brug af refresh.',CHALLENGE_COMPLETED:'En gennemført opgave kan ikke udskiftes.',CHALLENGE_REFRESH_LIMIT:'Du har brugt de to udskiftninger for denne opgave i dag.',CHALLENGE_EXPIRED:'Denne udfordring er udløbet. Hent dagens nye opgaver.',CHALLENGE_REUSED:'Du har allerede brugt dette billede som bevis. Tag et nyt screenshot til denne udfordring.'};return messages[e.message]?json({error:messages[e.message]},409):failure(e);}}
