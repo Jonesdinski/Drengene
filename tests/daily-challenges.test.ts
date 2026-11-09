@@ -16,7 +16,7 @@ test('private account quests, immutable assignment, one proof per award, gallery
  await pg.exec(await readFile(new URL('../database/'+filename,import.meta.url),'utf8'));
  await pg.query("INSERT INTO lejrbalet.profiles(id,auth_id,name,created) VALUES('a','auth-a','A','2026-01-01'),('b','auth-b','B','2026-01-02')");
  const exec=(tx:any):any=>({unsafe:async(q:string,v:any[]=[])=>{const r=await tx.query(q,v);return r.rows;}});
- await pg.exec(await readFile(new URL('../database/'+(await readdir(new URL('../database/',import.meta.url))).find(x=>x.endsWith('challenge_refresh.sql')),import.meta.url),'utf8'));
+ await pg.exec(await readFile(new URL('../database/'+(await readdir(new URL('../database/',import.meta.url))).find(x=>x.endsWith('challenge_refresh.sql')),import.meta.url),'utf8'));await pg.exec(await readFile(new URL('../database/'+(await readdir(new URL('../database/',import.meta.url))).find(x=>x.endsWith('challenge_rotation.sql')),import.meta.url),'utf8'));
  const {readChallenges,completeChallenge,refreshChallenge}=await import('../lib/daily-challenges');
  const now=new Date('2026-11-09T18:00:00Z');
  const read=(owner:string,date=now)=>pg.transaction(tx=>readChallenges(exec(tx),owner,date));
