@@ -1,6 +1,6 @@
 export const dailyChallengeCatalog=[
  {key:'snapshot',title:'Et øjeblik i Azeroth',description:'Tag et nyt screenshot fra spillet i dag. Du vælger selv motivet.',points:10,icon:'inv_misc_spyglass_03'},
- {key:'alliance',title:'For Horden!',description:'Tag et screenshot efter at have nedlagt en Alliance-spiller. Billedet skal vise din karakter og den besejrede modstander.',points:30,icon:'ability_rogue_ambush'},
+ {key:'alliance',title:'FOR THE HORDE',description:'Tag et screenshot efter at have nedlagt en Alliance-spiller. Billedet skal vise din karakter og den besejrede modstander.',points:30,icon:'ability_rogue_ambush'},
  {key:'dungeon',title:'Ned i mørket',description:'Tag et screenshot af din karakter inde i en dungeon sammen med dit party.',points:30,icon:'inv_misc_map_01'},
  {key:'landscape',title:'På opdagelse',description:'Find en flot udsigt, og tag et screenshot med din karakter i billedet.',points:20,icon:'inv_misc_map_01'},
  {key:'fishing',title:'Ro ved vandet',description:'Tag et screenshot af din karakter, mens du fisker.',points:20,icon:'trade_fishing'},

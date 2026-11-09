@@ -19,3 +19,11 @@ RLS er slået til, og direkte adgang er tilbagekaldt for `PUBLIC`, `anon` og `au
 ## Validering
 
 Isolerede PostgreSQL-tests dækker privatliv mellem konti, ejer af billedbevis, faste tildelinger, duplikerede afleveringer, genbrug af billedbytes, point, galleri, journal, CSRF, login, forfalskede point og dansk midnat inkl. sommertid. Browserkontrol af produktion må ikke aflevere falske screenshots eller optjene testpoint på rigtige konti.
+
+## Opdatering: udskiftning og historier
+
+`database/20261109094353_challenge_refresh.sql` tilføjer to kolonner til de nye udfordringer og ensretter navnet FOR THE HORDE i opgaver og tilknyttede galleriopslag. Tag backup af `lejrbalet.daily_challenges` og `lejrbalet.entries` inden manuel anvendelse. Eksisterende point og beviser bevares.
+
+Hver konto har to udskiftninger pr. dagsopgave (ikke to i alt). Serveren låser profilen og opgaven, afviser gennemførte/udløbne opgaver og sikrer, at nye opgaver hverken overlapper dagens øvrige opgaver eller opgavens tidligere forslag. En udskiftning skifter ID, så en gammel åben uploadformular ikke kan gennemføre den nye opgave ved en fejl. Tælleren følger det permanente dag/slot, også efter genbesøg.
+
+Valgfri historie, maks. 1.000 tegn, gemmes som galleriopslagets body i samme transaktion som pointene. Den vises som ren tekst i både galleri og offentlig gennemførelse.
