@@ -44,7 +44,7 @@ final class App: NSObject, NSApplicationDelegate, NSWindowDelegate {
         if UserDefaults.standard.integer(forKey:"payloadVersion") < 4 { settings.uploaded = [:]; UserDefaults.standard.set(4,forKey:"payloadVersion") }
         token = Keychain.read()
         window = NSWindow(contentRect:NSRect(x:0,y:0,width:640,height:740),styleMask:[.titled,.closable,.miniaturizable],backing:.buffered,defer:false)
-        window.title = "Lejrbalet Sync · 0.4.0"; window.delegate = self; window.isReleasedWhenClosed = false; window.center()
+        window.title = "Lejrbalet Sync · 0.5.0"; window.delegate = self; window.isReleasedWhenClosed = false; window.center()
         window.backgroundColor = NSColor(srgbRed:0.09,green:0.065,blue:0.045,alpha:1)
         let stack = NSStackView(); stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 14; stack.translatesAutoresizingMaskIntoConstraints = false
         window.contentView!.addSubview(stack)
@@ -113,10 +113,30 @@ final class App: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
     func isDirectory(_ path: String) -> Bool { var d: ObjCBool = false; return FileManager.default.fileExists(atPath:path,isDirectory:&d) && d.boolValue }
     @objc func forceSync() { Task { await sync(true) } }
+    // Missions and the WANTED list for the in-game addon. WoW addons cannot go online,
+    // so the app writes Interface/AddOns/LejrbaletSync/HubData.lua, which WoW loads on login or /reload.
+    var companionFetched = Date.distantPast
+    func companion(_ force: Bool) async {
+        guard force || Date().timeIntervalSince(companionFetched) >= 300 else { return }
+        let addon = URL(fileURLWithPath:settings.folder).appendingPathComponent("Interface/AddOns/LejrbaletSync",isDirectory:true)
+        guard isDirectory(addon.path) else { return }
+        companionFetched = Date()
+        var req = URLRequest(url:URL(string:hub+"/api/sync/companion")!); req.setValue("Bearer "+token,forHTTPHeaderField:"Authorization")
+        guard let result = try? await session.data(for:req), let http = result.1 as? HTTPURLResponse else { return }
+        let data = result.0
+        if http.statusCode == 401 { authBlocked = true; report("Forbindelsesnøglen er udløbet eller afbrudt. Opret en ny på /sync."); return }
+        guard http.statusCode == 200, data.count <= 512*1024, String(data:data,encoding:.utf8)?.hasPrefix("-- Lejrbalet companion data") == true else { return }
+        let target = addon.appendingPathComponent("HubData.lua")
+        if let existing = try? Data(contentsOf:target), existing == data { return }
+        do { try data.write(to:target,options:.atomic); report("Missioner og WANTED-liste hentet \(DateFormatter.localizedString(from:Date(),dateStyle:.none,timeStyle:.short)). Brug /reload i WoW for at se dem.") }
+        catch { report("Ingen skriveadgang til addon-mappen. Missioner kan ikke gemmes.") }
+    }
     func sync(_ force: Bool) async {
         guard !busy, !authBlocked, force || settings.autoUpload else { return }
         guard !token.isEmpty, !settings.folder.isEmpty else { if force { report("Tryk Gem og forbind først.") }; return }
         busy = true; defer { busy = false }
+        await companion(force)
+        if authBlocked { return }
         do {
             let root = URL(fileURLWithPath:settings.folder).appendingPathComponent("WTF/Account",isDirectory:true)
             let accounts = try FileManager.default.contentsOfDirectory(at:root,includingPropertiesForKeys:[.isDirectoryKey],options:.skipsHiddenFiles).filter { isDirectory($0.path) }.prefix(20)
@@ -141,7 +161,7 @@ final class App: NSObject, NSApplicationDelegate, NSWindowDelegate {
                     guard response.statusCode == 200 else { report("Hubben kunne ikke gemme dataene. Prøver igen automatisk."); return }
                     let result = try JSONDecoder().decode(Reply.self,from:reply); updated += result.updated; pending += result.pending
                 }
-                settings.uploaded[file.path] = digest; try persist(); sent = true
+                settings.uploaded[file.path] = digest; try persist(); sent = true; companionFetched = .distantPast
             }
             if !found { report("Venter på LejrbaletSync.lua. Scan med /lejrbalet, og brug /reload eller log ud.") }
             else if sent { report("Seneste sync: \(DateFormatter.localizedString(from:Date(),dateStyle:.short,timeStyle:.short)). \(updated) opdateret." + (pending > 0 ? " \(pending) afventer tilknytning på hubben." : " Alle kendte karakterer er behandlet.")) }

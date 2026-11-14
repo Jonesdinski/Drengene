@@ -28,7 +28,7 @@ Section "Lejrbalet Sync"
  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "LejrbaletSync" '$"$INSTDIR\LejrbaletSync.exe$" --background'
  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\LejrbaletSync" "DisplayName" "Lejrbalet Sync"
  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\LejrbaletSync" "UninstallString" '$"$INSTDIR\Uninstall.exe$"'
- WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\LejrbaletSync" "DisplayVersion" "0.4.0"
+ WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\LejrbaletSync" "DisplayVersion" "0.5.0"
  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\LejrbaletSync" "NoModify" 1
  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\LejrbaletSync" "NoRepair" 1
 SectionEnd

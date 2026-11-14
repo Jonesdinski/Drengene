@@ -14,7 +14,7 @@ jobs:
       - name: Install Lua
         run: sudo apt-get update -qq && sudo apt-get install -y lua5.1
       - name: Check original addon capture logic
-        run: lua5.1 addon/tests/capture.lua
+        run: lua5.1 addon/tests/capture.lua && lua5.1 addon/tests/companion.lua && luac5.1 -p addon/LejrbaletSync/*.lua
       - name: Package addon
         run: cd addon && zip -r LejrbaletSync-Addon.zip LejrbaletSync -x '*.svg'
       - uses: actions/upload-artifact@v4
@@ -25,5 +25,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view addon-v0.4.1 >/dev/null 2>&1 || gh release create addon-v0.4.1 --target '${{ github.sha }}' --title 'Lejrbalet Sync Addon 0.4.1' --notes-file addon/README.md
-          gh release upload addon-v0.4.1 addon/LejrbaletSync-Addon.zip --clobber
+          gh release view addon-v0.5.0 >/dev/null 2>&1 || gh release create addon-v0.5.0 --target '${{ github.sha }}' --title 'Lejrbalet Companion Addon 0.5.0' --notes-file addon/README.md
+          gh release upload addon-v0.5.0 addon/LejrbaletSync-Addon.zip --clobber

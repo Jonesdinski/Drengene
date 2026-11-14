@@ -25,7 +25,7 @@ public sealed class SyncForm:Form {
  readonly NotifyIcon tray;readonly System.Windows.Forms.Timer timer=new(){Interval=15000};
  readonly HttpClient http=new(new HttpClientHandler{AllowAutoRedirect=false}){Timeout=TimeSpan.FromSeconds(25)};
  Settings settings=new();bool loading=true,busy,quit,background,authBlocked;string token="";
- public SyncForm(bool hidden){background=hidden;Text="Lejrbalet Sync · 0.4.0";ClientSize=new Size(660,690);MinimumSize=new Size(660,600);BackColor=Color.FromArgb(24,17,11);ForeColor=Color.Gainsboro;Font=new Font("Segoe UI",10);StartPosition=FormStartPosition.CenterScreen;if(hidden){WindowState=FormWindowState.Minimized;ShowInTaskbar=false;}
+ public SyncForm(bool hidden){background=hidden;Text="Lejrbalet Sync · 0.5.0";ClientSize=new Size(660,690);MinimumSize=new Size(660,600);BackColor=Color.FromArgb(24,17,11);ForeColor=Color.Gainsboro;Font=new Font("Segoe UI",10);StartPosition=FormStartPosition.CenterScreen;if(hidden){WindowState=FormWindowState.Minimized;ShowInTaskbar=false;}
  using(var iconStream=typeof(SyncForm).Assembly.GetManifestResourceStream("Lejrbalet.Icon.ico")){if(iconStream is not null)Icon=new Icon(iconStream);}
  var body=new FlowLayoutPanel{Dock=DockStyle.Fill,Padding=new Padding(25),FlowDirection=FlowDirection.TopDown,WrapContents=false,AutoScroll=true};Controls.Add(body);
  using(var imageStream=typeof(SyncForm).Assembly.GetManifestResourceStream("Lejrbalet.Icon.png")){if(imageStream is not null)body.Controls.Add(new PictureBox{Image=new Bitmap(Image.FromStream(imageStream)),SizeMode=PictureBoxSizeMode.Zoom,Width=64,Height=64});}
@@ -51,7 +51,32 @@ public sealed class SyncForm:Form {
  void LoadSettings(){try{if(File.Exists(ConfigPath)){settings=JsonSerializer.Deserialize<Settings>(File.ReadAllText(ConfigPath))??new();if(settings.Secret.Length>0)token=Encoding.UTF8.GetString(ProtectedData.Unprotect(Convert.FromBase64String(settings.Secret),null,DataProtectionScope.CurrentUser));}}catch{Report("Indstillinger kunne ikke læses. Forbind kontoen igen.");}}
  void Persist(){try{Directory.CreateDirectory(DataDir);settings.Secret=token.Length>0?Convert.ToBase64String(ProtectedData.Protect(Encoding.UTF8.GetBytes(token),null,DataProtectionScope.CurrentUser)):"";string temp=ConfigPath+".tmp";File.WriteAllText(temp,JsonSerializer.Serialize(settings));File.Move(temp,ConfigPath,true);}catch{Report("Indstillinger kunne ikke gemmes på computeren.");}}
  void SaveAndSync(){if(busy){Report("Vent, til den igangværende upload er færdig.");return;}string next=key.Text.Trim();if(!System.Text.RegularExpressions.Regex.IsMatch(next,"^ljbs1_[a-f0-9]{64}$")){Report("Indsæt en gyldig uploadnøgle fra /sync.");return;}string root=folder.Text.Trim();if(!Directory.Exists(Path.Combine(root,"Interface"))||!Directory.Exists(Path.Combine(root,"WTF"))){Report("Vælg klientmappen, som indeholder både Interface og WTF.");return;}if(next!=token||root!=settings.Folder)settings.Uploaded.Clear();token=next;authBlocked=false;settings.Folder=root;settings.AutoUpload=enabled.Checked;Persist();Tick(true);}
+
+ // Missions and the WANTED list for the in-game addon. WoW addons cannot go online,
+ // so the app writes Interface/AddOns/LejrbaletSync/HubData.lua, which WoW loads on login or /reload.
+ const string CompanionHeader="-- Lejrbalet companion data";
+ DateTime companionFetched=DateTime.MinValue;
+ async Task Companion(bool force){
+  if(!force&&DateTime.UtcNow-companionFetched<TimeSpan.FromMinutes(5))return;
+  string addon=Path.Combine(settings.Folder,"Interface","AddOns","LejrbaletSync");
+  if(!Directory.Exists(addon))return;
+  companionFetched=DateTime.UtcNow;
+  try{
+   using var request=new HttpRequestMessage(HttpMethod.Get,Hub+"/api/sync/companion");request.Headers.Authorization=new AuthenticationHeaderValue("Bearer",token);
+   using var response=await http.SendAsync(request);
+   if(response.StatusCode==HttpStatusCode.Unauthorized){authBlocked=true;Report("Uploadnøglen er afbrudt eller udløbet. Opret en ny på /sync.");return;}
+   if(!response.IsSuccessStatusCode)return;
+   string body=await response.Content.ReadAsStringAsync();
+   if(!body.StartsWith(CompanionHeader,StringComparison.Ordinal)||body.Length>512*1024)return;
+   string target=Path.Combine(addon,"HubData.lua");
+   if(File.Exists(target)&&string.Equals(await File.ReadAllTextAsync(target),body,StringComparison.Ordinal))return;
+   string temp=target+".tmp";await File.WriteAllTextAsync(temp,body,new UTF8Encoding(false));File.Move(temp,target,true);
+   Report($"Missioner og WANTED-liste hentet {DateTime.Now:t}. Brug /reload i WoW for at se dem.");
+  }catch(HttpRequestException){}catch(TaskCanceledException){}catch(IOException){}catch(UnauthorizedAccessException){Report("Ingen skriveadgang til addon-mappen. Missioner kan ikke gemmes.");}
+ }
  async void Tick(bool force){if(busy||authBlocked||(!force&&!settings.AutoUpload))return;if(string.IsNullOrEmpty(token)||string.IsNullOrEmpty(settings.Folder)){if(force)Report("Tryk Gem og forbind, før du starter sync.");return;}busy=true;try{
+ await Companion(force);if(authBlocked)return;
+
  string accounts=Path.Combine(settings.Folder,"WTF","Account");if(!Directory.Exists(accounts)){Report("WoW-mappen er utilgængelig. Appen prøver igen automatisk.");return;}
  var files=Directory.GetDirectories(accounts).Select(a=>{var own=Path.Combine(a,"SavedVariables","LejrbaletSync.lua");return File.Exists(own)?own:Path.Combine(a,"SavedVariables","FlockSync.lua");}).Where(File.Exists).Take(20).ToArray();if(files.Length==0){Report("Venter på LejrbaletSync.lua / FlockSync.lua. Scan en karakter i WoW og log ud.");return;}
  bool uploaded=false;int totalUpdated=0,totalPending=0;
@@ -61,7 +86,7 @@ public sealed class SyncForm:Form {
  foreach(var batch in chars.Chunk(4)){using var request=new HttpRequestMessage(HttpMethod.Post,Hub+"/api/sync/upload");request.Headers.Authorization=new AuthenticationHeaderValue("Bearer",token);request.Content=new StringContent(JsonSerializer.Serialize(new{characters=batch},Json),Encoding.UTF8,"application/json");using var response=await http.SendAsync(request);
  if(response.StatusCode==HttpStatusCode.Unauthorized){authBlocked=true;Report("Uploadnøglen er afbrudt eller udløbet. Opret en ny på /sync.");return;}if(!response.IsSuccessStatusCode)throw new HttpRequestException("Serveren kunne ikke gemme uploaden. Appen prøver igen.");
  using var result=JsonDocument.Parse(await response.Content.ReadAsStringAsync());totalUpdated+=result.RootElement.GetProperty("updated").GetInt32();totalPending+=result.RootElement.GetProperty("pending").GetInt32();}
- settings.Uploaded[file]=digest;uploaded=true;Persist();
+ settings.Uploaded[file]=digest;uploaded=true;Persist();companionFetched=DateTime.MinValue;
  }
  if(uploaded)Report($"Seneste kontakt: {DateTime.Now:g}. {totalUpdated} opdateret. "+(totalPending>0?$"{totalPending} afventer godkendelse på /import.":"Alle kendte karakterer er behandlet."));
  }catch(FormatException e){Report(e.Message);}catch(IOException){Report("Filen er låst eller ændres. Appen prøver igen efter næste gemning.");}catch(UnauthorizedAccessException){Report("Ingen læseadgang til den valgte mappe.");}catch{Report("Ingen forbindelse til hubben. Appen prøver igen automatisk.");}finally{busy=false;}}

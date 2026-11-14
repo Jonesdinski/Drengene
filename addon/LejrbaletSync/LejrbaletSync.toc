@@ -1,8 +1,10 @@
 ## Interface: 16001
-## Title: Lejrbalet Sync
-## Notes: Dine karakterer ved bålet. Personlig sync til Lejrbalet.
+## Title: Lejrbalet Companion
+## Notes: Dagens missioner, WANTED-advarsler og sync til Lejrbalet-hubben.
 ## IconTexture: Interface\AddOns\LejrbaletSync\Icon
 ## Author: Lejrbalet
-## Version: 0.4.1
+## Version: 0.5.0
 ## SavedVariables: LejrbaletDB
+HubData.lua
 Main.lua
+Companion.lua
